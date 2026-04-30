@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "631020266512",
+    "project_id": "brgypilasmart",
+    "storage_bucket": "brgypilasmart.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:631020266512:android:b615e644d5e65d785c9695",
+        "android_client_info": {
+          "package_name": "com.example.mobile_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAmGGI_RmMX9nvV77_OS_qNGS41iQ8-CIM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:631020266512:android:27ef232b62f3a2e55c9695",
+        "android_client_info": {
+          "package_name": "com.kaycee.brgypilasmart"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAmGGI_RmMX9nvV77_OS_qNGS41iQ8-CIM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
