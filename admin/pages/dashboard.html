@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dashboard — BrgyPilaSmart Admin</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="../css/styles.css"/>
+  <link rel="dns-prefetch" href="https://www.gstatic.com"/>
+  <link rel="dns-prefetch" href="https://firestore.googleapis.com"/>
+</head>
+<body class="bg-[#F0F2F5] min-h-screen">
+
+  <!-- Sidebar + Topbar injected by JS -->
+
+  <!-- Page content: offset by sidebar (232px) and topbar (56px) -->
+  <div id="page-content" class="min-h-screen">
+    <div class="px-8 py-7">
+
+      <!-- Page title -->
+      <h1 class="text-[32px] font-extrabold text-gray-900 leading-tight mb-0">Smart Barangay</h1>
+      <h1 class="text-[32px] font-extrabold text-gray-900 leading-tight mb-5">Services.</h1>
+
+      <!-- OVERVIEW label -->
+      <p class="text-xs font-bold tracking-[0.18em] text-[#1A56DB] uppercase mb-4">Overview</p>
+
+      <!-- ── Three stat cards ─────────────────────────────────────────────── -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-6">
+
+        <!-- Card 1: Total requests -->
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-7">
+          <p id="stat-total" class="text-[52px] font-black text-gray-900 leading-none mb-2">—</p>
+          <p class="text-sm text-gray-500 leading-snug">
+            Total Barangay Requests<br/>Processed This Quarter
+          </p>
+          <p class="text-xs font-semibold text-green-500 mt-3">+12% from last month</p>
+        </div>
+
+        <!-- Card 2: Pending action -->
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-7">
+          <div class="flex items-start justify-between mb-3">
+            <div class="w-9 h-9 rounded-xl bg-red-50 flex items-center justify-center">
+              <!-- clipboard-list icon (red) -->
+              <svg class="w-5 h-5 text-red-400" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0
+                     00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2
+                     2 0 012 2m-6 9l2 2 4-4"/>
+              </svg>
+            </div>
+          </div>
+          <p id="stat-pending" class="text-[40px] font-black text-gray-900 leading-none mb-1">—</p>
+          <p class="text-[10px] font-bold text-gray-400 tracking-widest uppercase mb-4">Pending Action</p>
+          <!-- Red progress bar -->
+          <div class="w-full bg-gray-100 rounded-full h-[5px]">
+            <div id="pending-bar" class="h-[5px] rounded-full bg-[#C0392B] transition-all duration-700" style="width:0%"></div>
+          </div>
+        </div>
+
+        <!-- Card 3: Verified & Closed -->
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-7">
+          <div class="flex items-start justify-between mb-3">
+            <div class="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center">
+              <!-- check-circle icon (blue) -->
+              <svg class="w-5 h-5 text-[#1A56DB]" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+            </div>
+          </div>
+          <p id="stat-closed" class="text-[40px] font-black text-gray-900 leading-none mb-1">—</p>
+          <p class="text-[10px] font-bold text-gray-400 tracking-widest uppercase mb-4">Verified &amp; Closed</p>
+          <!-- Blue progress bar -->
+          <div class="w-full bg-gray-100 rounded-full h-[5px]">
+            <div id="closed-bar" class="h-[5px] rounded-full bg-[#1A56DB] transition-all duration-700" style="width:0%"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Recent Service Requests ───────────────────────────────────────── -->
+      <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+
+        <!-- Card header -->
+        <div class="flex items-center justify-between px-6 py-5 border-b border-gray-50">
+          <h2 class="font-bold text-gray-900 text-[15px]">Recent Service Requests</h2>
+          <a href="./requests.html"
+            class="text-[#1A56DB] text-xs font-semibold hover:underline">View All</a>
+        </div>
+
+        <!-- Rows — injected by JS -->
+        <div id="recent-rows" class="divide-y divide-gray-50">
+          <div class="px-6 py-10 text-center text-gray-400 text-sm">Loading…</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script type="module">
+    import { AuthService }    from "../js/auth.service.js";
+    import { RequestService } from "../js/request.service.js";
+    import { initLayout, wireLogout, statusBadge, fmtDateTime, avatarInitials, avatarBg } from "../js/ui.helpers.js";
+
+    initLayout("dashboard");
+
+    AuthService.requireAuth((user) => {
+      wireLogout(AuthService);
+
+      // ── Live stats ──────────────────────────────────────────────────────────
+      RequestService.listenStats(({ total, pending, closed }) => {
+        document.getElementById("stat-total").textContent   = total;
+        document.getElementById("stat-pending").textContent = pending;
+        document.getElementById("stat-closed").textContent  = closed;
+
+        const notifDot = document.getElementById("notif-dot");
+        if (notifDot) notifDot.classList.toggle("hidden", pending === 0);
+
+        if (total > 0) {
+          document.getElementById("pending-bar").style.width =
+            Math.round((pending / total) * 100) + "%";
+          document.getElementById("closed-bar").style.width  =
+            Math.round((closed  / total) * 100) + "%";
+        }
+      });
+
+      // ── Live recent requests (latest 4 matching design) ──────────────────
+      RequestService.listenAll((reqs) => {
+        const container = document.getElementById("recent-rows");
+        const recent    = reqs.slice(0, 4);
+
+        if (!recent.length) {
+          container.innerHTML =
+            `<div class="px-6 py-10 text-center text-gray-400 text-sm">No requests yet.</div>`;
+          return;
+        }
+
+        container.innerHTML = recent.map((r) => `
+          <a href="./request-detail.html?id=${r.id}"
+            class="flex items-center gap-4 px-6 py-4 hover:bg-gray-50 transition cursor-pointer">
+
+            <!-- Avatar circle -->
+            <div class="w-9 h-9 rounded-full flex items-center justify-center
+                        text-xs font-bold text-gray-600 shrink-0"
+                 style="background:${avatarBg(r.userName)}">
+              ${avatarInitials(r.userName)}
+            </div>
+
+            <!-- Name + doc type -->
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-semibold text-gray-800 truncate">${r.userName}</p>
+              <p class="text-[11px] text-gray-400 uppercase tracking-wide font-medium truncate">
+                ${r.documentType}
+              </p>
+            </div>
+
+            <!-- Date -->
+            <span class="text-xs text-gray-400 whitespace-nowrap hidden sm:block mr-4">
+              ${fmtDateTime(r.createdAt)}
+            </span>
+
+            <!-- Status badge -->
+            ${statusBadge(r.status)}
+          </a>
+        `).join("");
+      });
+    });
+  </script>
+</body>
+</html>

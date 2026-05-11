@@ -1,0 +1,28 @@
+/* css/styles.css */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+*, *::before, *::after { font-family: 'Inter', sans-serif; box-sizing: border-box; }
+
+/* Spinner */
+.spin { animation: spin 0.7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Thin scrollbar */
+::-webkit-scrollbar       { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 4px; }
+
+/* Table row hover */
+tbody tr { transition: background 0.1s; }
+tbody tr:hover td { background: #f9fafb; }
+
+/* Modal */
+.modal-wrap        { display: none; }
+.modal-wrap.open   { display: flex; }
+
+/* Page fade-in */
+#page-content { animation: fadeUp 0.2s ease both; }
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: none; }
+}

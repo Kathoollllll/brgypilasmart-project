@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Settings — BrgyPilaSmart Admin</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="../css/styles.css"/>
+  <link rel="preconnect" href="https://www.gstatic.com" crossorigin/>
+  <link rel="dns-prefetch" href="https://www.gstatic.com"/>
+  <link rel="dns-prefetch" href="https://firestore.googleapis.com"/>
+</head>
+<body class="bg-[#F0F2F5] min-h-screen">
+
+  <div id="page-content" class="min-h-screen">
+    <div class="px-8 py-7 max-w-3xl">
+
+      <h1 class="text-[28px] font-extrabold text-gray-900 mb-1">Settings</h1>
+      <p class="text-sm text-gray-400 mb-8">Manage your admin portal preferences and account.</p>
+
+      <!-- ── Admin Account ──────────────────────────────────────────────────── -->
+      <div class="bg-white rounded-2xl border border-gray-100 shadow-sm mb-5 overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-50">
+          <h2 class="font-bold text-gray-800 text-sm">Admin Account</h2>
+          <p class="text-xs text-gray-400 mt-0.5">Your login credentials and profile information.</p>
+        </div>
+        <div class="px-6 py-5 space-y-4">
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">
+                Display Name
+              </label>
+              <input id="display-name" type="text" placeholder="Brgy. Admin"
+                class="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm
+                       text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#1A56DB]/20
+                       focus:border-[#1A56DB] transition"/>
+            </div>
+            <div>
+              <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">
+                Email Address
+              </label>
+              <input id="admin-email" type="email" disabled
+                class="w-full px-3.5 py-2.5 border border-gray-100 rounded-xl text-sm
+                       text-gray-400 bg-gray-50 cursor-not-allowed"/>
+            </div>
+          </div>
+          <button
+            class="px-5 py-2.5 bg-[#1A56DB] hover:bg-[#1040A8] text-white text-sm
+                   font-semibold rounded-xl transition">
+            Save Changes
+          </button>
+        </div>
+      </div>
+
+      <!-- ── Change Password ────────────────────────────────────────────────── -->
+      <div class="bg-white rounded-2xl border border-gray-100 shadow-sm mb-5 overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-50">
+          <h2 class="font-bold text-gray-800 text-sm">Change Password</h2>
+          <p class="text-xs text-gray-400 mt-0.5">Update your admin account password.</p>
+        </div>
+        <div class="px-6 py-5 space-y-4">
+          <div>
+            <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">
+              New Password
+            </label>
+            <input id="new-pass" type="password" placeholder="••••••••"
+              class="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm
+                     text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#1A56DB]/20
+                     focus:border-[#1A56DB] transition"/>
+          </div>
+          <div>
+            <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">
+              Confirm New Password
+            </label>
+            <input id="confirm-pass" type="password" placeholder="••••••••"
+              class="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm
+                     text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#1A56DB]/20
+                     focus:border-[#1A56DB] transition"/>
+          </div>
+          <p id="pass-msg" class="hidden text-xs font-medium"></p>
+          <button id="change-pass-btn"
+            class="px-5 py-2.5 bg-[#1A56DB] hover:bg-[#1040A8] text-white text-sm
+                   font-semibold rounded-xl transition">
+            Update Password
+          </button>
+        </div>
+      </div>
+
+      <!-- ── Barangay Information ───────────────────────────────────────────── -->
+      <div class="bg-white rounded-2xl border border-gray-100 shadow-sm mb-5 overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-50">
+          <h2 class="font-bold text-gray-800 text-sm">Barangay Information</h2>
+          <p class="text-xs text-gray-400 mt-0.5">Displayed to residents in the mobile app.</p>
+        </div>
+        <div class="px-6 py-5 space-y-4">
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">
+                Barangay Name
+              </label>
+              <input type="text" value="Barangay Pila"
+                class="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm
+                       text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#1A56DB]/20
+                       focus:border-[#1A56DB] transition"/>
+            </div>
+            <div>
+              <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">
+                Municipality / City
+              </label>
+              <input type="text" value="La Union"
+                class="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm
+                       text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#1A56DB]/20
+                       focus:border-[#1A56DB] transition"/>
+            </div>
+          </div>
+          <div>
+            <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">
+              Processing Time Note (shown to residents)
+            </label>
+            <textarea rows="2"
+              class="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm
+                     text-gray-700 resize-none focus:outline-none focus:ring-2
+                     focus:ring-[#1A56DB]/20 focus:border-[#1A56DB] transition"
+              >Standard requests are processed within 24–48 hours.</textarea>
+          </div>
+          <button class="px-5 py-2.5 bg-[#1A56DB] hover:bg-[#1040A8] text-white text-sm font-semibold rounded-xl transition">
+            Save Information
+          </button>
+        </div>
+      </div>
+
+      <!-- ── Firebase Config reminder ──────────────────────────────────────── -->
+      <div class="bg-[#EBF3FF] border border-[#BFDBFE] rounded-2xl px-6 py-5">
+        <div class="flex items-start gap-3">
+          <svg class="w-5 h-5 text-[#1A56DB] shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round"
+              d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+          <div>
+            <p class="text-sm font-bold text-[#1A56DB] mb-1">Firebase Configuration</p>
+            <p class="text-xs text-[#1D4ED8] leading-relaxed">
+              To connect this admin panel to your Firebase project, open
+              <code class="bg-blue-100 px-1 py-0.5 rounded font-mono">js/firebase.js</code>
+              and replace all <code class="bg-blue-100 px-1 py-0.5 rounded font-mono">YOUR_*</code>
+              values with your actual Firebase config from the Firebase Console
+              → Project Settings → Your apps.
+            </p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script type="module">
+    import { AuthService } from "../js/auth.service.js";
+    import { auth }        from "../js/firebase.js";
+    import { updatePassword, EmailAuthProvider, reauthenticateWithCredential }
+      from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+    import { initLayout, wireLogout } from "../js/ui.helpers.js";
+
+    initLayout("settings");
+
+    AuthService.requireAuth((user) => {
+      wireLogout(AuthService);
+
+      // Show current email (read-only)
+      document.getElementById("admin-email").value = user.email ?? "";
+
+      // Change password
+      document.getElementById("change-pass-btn").addEventListener("click", async () => {
+        const np  = document.getElementById("new-pass").value;
+        const cp  = document.getElementById("confirm-pass").value;
+        const msg = document.getElementById("pass-msg");
+
+        msg.classList.remove("hidden","text-green-600","text-red-500");
+
+        if (!np || np.length < 6) {
+          msg.textContent = "Password must be at least 6 characters.";
+          msg.classList.add("text-red-500","text-xs");
+          msg.classList.remove("hidden");
+          return;
+        }
+        if (np !== cp) {
+          msg.textContent = "Passwords do not match.";
+          msg.classList.add("text-red-500","text-xs");
+          msg.classList.remove("hidden");
+          return;
+        }
+
+        try {
+          await updatePassword(auth.currentUser, np);
+          msg.textContent = "✓ Password updated successfully.";
+          msg.classList.add("text-green-600","text-xs");
+          msg.classList.remove("hidden");
+          document.getElementById("new-pass").value     = "";
+          document.getElementById("confirm-pass").value = "";
+        } catch (e) {
+          msg.textContent = e.code === "auth/requires-recent-login"
+            ? "Session expired. Please log out and log back in before changing your password."
+            : "Failed to update password. " + e.message;
+          msg.classList.add("text-red-500","text-xs");
+          msg.classList.remove("hidden");
+        }
+      });
+    });
+  </script>
+</body>
+</html>

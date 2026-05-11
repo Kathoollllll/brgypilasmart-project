@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Request Management — BrgyPilaSmart Admin</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="../css/styles.css"/>
+  <link rel="preconnect" href="https://www.gstatic.com" crossorigin/>
+  <link rel="dns-prefetch" href="https://www.gstatic.com"/>
+  <link rel="dns-prefetch" href="https://firestore.googleapis.com"/>
+</head>
+<body class="bg-[#F0F2F5] min-h-screen">
+
+  <div id="page-content" class="min-h-screen">
+    <div class="px-8 py-7">
+
+      <!-- ── Page header ──────────────────────────────────────────────────── -->
+      <div class="flex items-start justify-between mb-6">
+        <div>
+          <h1 class="text-[28px] font-extrabold text-gray-900 mb-1">Requests</h1>
+          <p class="text-sm text-gray-400">Manage community document applications and certifications.</p>
+        </div>
+
+        <!-- Search + Status filter (top-right, matching design) -->
+        <div class="flex items-center gap-3">
+          <div class="relative">
+            <svg class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
+                 fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+            </svg>
+            <input id="search-input" type="text" placeholder="Search by resident name..."
+              class="pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm bg-white text-gray-700
+                     placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#1A56DB]/20
+                     focus:border-[#1A56DB] transition w-56"/>
+          </div>
+
+          <!-- All Statuses dropdown -->
+          <div class="relative">
+            <select id="status-filter"
+              class="appearance-none pl-4 pr-8 py-2 border border-gray-200 rounded-lg text-sm
+                     bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#1A56DB]/20
+                     focus:border-[#1A56DB] transition cursor-pointer font-medium">
+              <option value="">All Statuses</option>
+              <option value="Requested">Pending</option>
+              <option value="Verified">Verified</option>
+              <option value="Printed">Printed</option>
+              <option value="Ready">Ready</option>
+              <option value="Rejected">Rejected</option>
+            </select>
+            <svg class="w-4 h-4 absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
+                 fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Table card ───────────────────────────────────────────────────── -->
+      <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <table class="w-full">
+
+          <!-- Header row — matching design exactly -->
+          <thead>
+            <tr class="border-b border-gray-100">
+              <th class="w-16 px-6 py-4"></th><!-- avatar column -->
+              <th class="text-left px-3 py-4 text-[11px] font-semibold text-gray-400 uppercase tracking-widest">
+                Resident Name
+              </th>
+              <th class="text-left px-3 py-4 text-[11px] font-semibold text-gray-400 uppercase tracking-widest">
+                Document Type
+              </th>
+              <th class="text-left px-3 py-4 text-[11px] font-semibold text-gray-400 uppercase tracking-widest">
+                Submission<br/>Date
+              </th>
+              <th class="text-left px-3 py-4 text-[11px] font-semibold text-gray-400 uppercase tracking-widest">
+                Current<br/>Status
+              </th>
+              <th class="text-left px-3 py-4 text-[11px] font-semibold text-gray-400 uppercase tracking-widest">
+                Actions
+              </th>
+            </tr>
+          </thead>
+
+          <tbody id="req-tbody">
+            <tr>
+              <td colspan="6" class="text-center py-14 text-gray-400 text-sm">Loading…</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- ── Pagination ─────────────────────────────────────────────────── -->
+        <div class="flex items-center justify-end gap-1 px-6 py-4 border-t border-gray-50">
+          <button id="pg-prev"
+            class="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200
+                   text-gray-500 hover:bg-gray-50 transition disabled:opacity-40 disabled:cursor-not-allowed">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+            </svg>
+          </button>
+          <div id="pg-numbers" class="flex gap-1"></div>
+          <button id="pg-next"
+            class="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200
+                   text-gray-500 hover:bg-gray-50 transition disabled:opacity-40 disabled:cursor-not-allowed">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script type="module">
+    import { AuthService }    from "../js/auth.service.js";
+    import { RequestService } from "../js/request.service.js";
+    import { initLayout, wireLogout, statusBadge, fmtDate, avatarInitials, avatarBg } from "../js/ui.helpers.js";
+
+    initLayout("requests");
+
+    const PAGE_SIZE = 7;
+    let allRequests = [];
+    let filtered    = [];
+    let currentPage = 1;
+
+    // ── Render one page of rows ───────────────────────────────────────────────
+    function renderTable() {
+      const tbody = document.getElementById("req-tbody");
+      const start = (currentPage - 1) * PAGE_SIZE;
+      const page  = filtered.slice(start, start + PAGE_SIZE);
+
+      if (!filtered.length) {
+        tbody.innerHTML =
+          `<tr><td colspan="6" class="text-center py-14 text-gray-400 text-sm">No requests found.</td></tr>`;
+        renderPagination(0);
+        return;
+      }
+
+      tbody.innerHTML = page.map((r) => `
+        <tr class="border-b border-gray-50 last:border-0">
+
+          <!-- Avatar -->
+          <td class="px-6 py-4">
+            <div class="w-9 h-9 rounded-full flex items-center justify-center
+                        text-xs font-bold text-gray-600 mx-auto"
+                 style="background:${avatarBg(r.userName)}">
+              ${avatarInitials(r.userName)}
+            </div>
+          </td>
+
+          <!-- Name -->
+          <td class="px-3 py-4">
+            <p class="text-sm font-semibold text-gray-800">${r.userName}</p>
+          </td>
+
+          <!-- Document type -->
+          <td class="px-3 py-4 text-sm text-gray-600">${r.documentType}</td>
+
+          <!-- Date -->
+          <td class="px-3 py-4 text-sm text-gray-500 whitespace-nowrap">${fmtDate(r.createdAt)}</td>
+
+          <!-- Status badge -->
+          <td class="px-3 py-4">${statusBadge(r.status)}</td>
+
+          <!-- Actions -->
+          <td class="px-3 py-4">
+            <a href="./request-detail.html?id=${r.id}"
+              class="text-[#1A56DB] text-sm font-semibold hover:underline whitespace-nowrap">
+              View<br/>Details
+            </a>
+          </td>
+        </tr>
+      `).join("");
+
+      renderPagination(filtered.length);
+    }
+
+    // ── Pagination buttons ────────────────────────────────────────────────────
+    function renderPagination(total) {
+      const totalPages = Math.ceil(total / PAGE_SIZE);
+      const nums       = document.getElementById("pg-numbers");
+      const prev       = document.getElementById("pg-prev");
+      const next       = document.getElementById("pg-next");
+
+      prev.disabled = currentPage <= 1;
+      next.disabled = currentPage >= totalPages;
+
+      // Show up to 5 page buttons
+      const pages = [];
+      for (let i = 1; i <= Math.min(totalPages, 5); i++) pages.push(i);
+
+      nums.innerHTML = pages.map((p) => `
+        <button data-p="${p}"
+          class="pg-btn w-8 h-8 rounded-lg text-sm font-semibold transition
+            ${p === currentPage
+              ? "bg-[#1A56DB] text-white"
+              : "border border-gray-200 text-gray-500 hover:bg-gray-50"}">
+          ${p}
+        </button>
+      `).join("");
+
+      nums.querySelectorAll(".pg-btn").forEach((btn) =>
+        btn.addEventListener("click", () => {
+          currentPage = +btn.dataset.p;
+          renderTable();
+        })
+      );
+
+      prev.onclick = () => { if (currentPage > 1) { currentPage--; renderTable(); } };
+      next.onclick = () => { if (currentPage < totalPages) { currentPage++; renderTable(); } };
+    }
+
+    // ── Filter logic ──────────────────────────────────────────────────────────
+    function applyFilter() {
+      const search = document.getElementById("search-input").value.toLowerCase();
+      const status = document.getElementById("status-filter").value;
+      filtered = allRequests.filter((r) =>
+        (!search || r.userName?.toLowerCase().includes(search) ||
+                    r.referenceNo?.toLowerCase().includes(search)) &&
+        (!status || r.status === status)
+      );
+      currentPage = 1;
+      renderTable();
+    }
+
+    document.getElementById("search-input").addEventListener("input", applyFilter);
+    document.getElementById("status-filter").addEventListener("change", applyFilter);
+
+    // ── Boot ──────────────────────────────────────────────────────────────────
+    AuthService.requireAuth((user) => {
+      wireLogout(AuthService);
+      RequestService.listenAll((reqs) => {
+        allRequests = reqs;
+        applyFilter();
+      });
+    });
+  </script>
+</body>
+</html>

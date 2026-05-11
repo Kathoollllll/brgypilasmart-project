@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Request Details — BrgyPilaSmart Admin</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="../css/styles.css"/>
+  <link rel="preconnect" href="https://www.gstatic.com" crossorigin/>
+  <link rel="dns-prefetch" href="https://www.gstatic.com"/>
+  <link rel="dns-prefetch" href="https://firestore.googleapis.com"/>
+</head>
+<body class="bg-[#F0F2F5] min-h-screen">
+
+  <div id="page-content" class="min-h-screen">
+    <div class="px-8 py-7" id="detail-root">
+      <div class="text-center py-20 text-gray-400">Loading request…</div>
+    </div>
+  </div>
+
+  <!-- Confirm dialog for Approve & Notify -->
+  <div id="confirm-modal"
+    class="modal-wrap fixed inset-0 bg-black/30 backdrop-blur-sm z-50
+           items-center justify-center p-4"
+     style="display:none">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
+      <div class="flex items-center gap-3 mb-3">
+        <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+          <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+        </div>
+        <h3 class="font-bold text-gray-800 text-base">Approve Request</h3>
+      </div>
+      <p class="text-sm text-gray-500 mb-5 leading-relaxed">
+        This will update the status to <strong>Verified</strong> in Firestore.
+        The resident will see the update live in their mobile app.
+      </p>
+      <div class="flex gap-2">
+        <button id="confirm-cancel"
+          class="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600
+                 hover:bg-gray-50 font-medium transition">
+          Cancel
+        </button>
+        <button id="confirm-ok"
+          class="flex-1 py-2.5 rounded-xl bg-[#1A56DB] hover:bg-[#1040A8] text-white
+                 text-sm font-semibold transition flex items-center justify-center gap-2">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+          </svg>
+          Confirm Approval
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Reject confirm dialog -->
+ <div id="reject-modal"
+    class="modal-wrap fixed inset-0 bg-black/30 backdrop-blur-sm z-50
+           items-center justify-center p-4"
+    style="display:none">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
+      <div class="flex items-center gap-3 mb-3">
+        <div class="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+          <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round"
+              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667
+                 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34
+                 16c-.77 1.333.192 3 1.732 3z"/>
+          </svg>
+        </div>
+        <h3 class="font-bold text-gray-800 text-base">Reject Request</h3>
+      </div>
+      <p class="text-sm text-gray-500 mb-4 leading-relaxed">
+        Please provide a reason for rejection (optional):
+      </p>
+      <textarea id="reject-reason" rows="3" placeholder="Reason for rejection…"
+        class="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm resize-none mb-4
+               focus:outline-none focus:ring-2 focus:ring-red-200 focus:border-red-400 transition"></textarea>
+      <div class="flex gap-2">
+        <button id="reject-cancel"
+          class="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600
+                 hover:bg-gray-50 font-medium transition">
+          Cancel
+        </button>
+        <button id="reject-ok"
+          class="flex-1 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 text-white
+                 text-sm font-semibold transition">
+          Reject Request
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { AuthService }    from "../js/auth.service.js";
+    import { RequestService } from "../js/request.service.js";
+    import { UserService }    from "../js/user.service.js";
+    import {
+      initLayout, wireLogout, statusBadge,
+      fmtFullDate, fmtDate, STATUSES,
+    } from "../js/ui.helpers.js";
+
+    initLayout("requests");
+
+    const params = new URLSearchParams(window.location.search);
+    const reqId  = params.get("id");
+    if (!reqId) window.location.href = "./requests.html";
+
+    // Modal helpers — always use style.display, never classList
+    const confirmModal = document.getElementById("confirm-modal");
+    const rejectModal  = document.getElementById("reject-modal");
+
+    const openConfirm  = () => { confirmModal.style.display = "flex"; };
+    const closeConfirm = () => { confirmModal.style.display = "none";  };
+    const openReject   = () => { rejectModal.style.display  = "flex"; };
+    const closeReject  = () => { rejectModal.style.display  = "none";  };
+
+    document.getElementById("confirm-cancel").addEventListener("click", closeConfirm);
+    document.getElementById("reject-cancel").addEventListener("click", closeReject);
+
+    // Close on backdrop click
+    confirmModal.addEventListener("click", (e) => { if (e.target === confirmModal) closeConfirm(); });
+    rejectModal.addEventListener("click",  (e) => { if (e.target === rejectModal)  closeReject();  });
+
+    // Pipeline steps definition
+    const STEPS = [
+      {
+        key:   "Requested",
+        label: "Pending",
+        desc:  "Request received, awaiting admin review.",
+      },
+      {
+        key:   "Verified",
+        label: "Verified",
+        desc:  "Valid ID checked. Resident identity confirmed.",
+      },
+      {
+        key:   "Printed",
+        label: "Printing",
+        desc:  "Document sent to print queue.",
+      },
+      {
+        key:   "Ready",
+        label: "Ready for Pickup",
+        desc:  "Document is ready. Waiting for resident to collect.",
+      },
+      {
+        key:   "PickedUp",
+        label: "Picked Up",
+        desc:  "Resident has collected the document. Moved to Archive.",
+      },
+    ];
+
+    AuthService.requireAuth((user) => {
+      wireLogout(AuthService);
+
+      RequestService.listenOne(reqId, async (r) => {
+        const root = document.getElementById("detail-root");
+
+        // Fetch resident profile
+        let resident = null;
+        if (r.userId) {
+          try { resident = await UserService.getOne(r.userId); } catch {}
+        }
+
+        const residentVerified = resident?.isVerified ?? false;
+
+        // Current step index in pipeline
+        const currentStepIdx = STEPS.findIndex(s => s.key === r.status);
+        const isRejected      = r.status === "Rejected";
+        const isFinal    = r.status === "PickedUp";
+        const isReady    = r.status === "Ready";
+
+        // Status header color
+        const statusColors = {
+          Requested: { bg: "#E5E7EB", text: "#374151", dot: "#6B7280" },
+          Verified:  { bg: "#DBEAFE", text: "#1D4ED8", dot: "#1A56DB" },
+          Printed:   { bg: "#EDE9FE", text: "#5B21B6", dot: "#7C3AED" },
+          Ready:     { bg: "#D1FAE5", text: "#065F46", dot: "#16A34A" },
+          Rejected:  { bg: "#FEE2E2", text: "#991B1B", dot: "#DC2626" },
+        }[r.status] ?? { bg: "#E5E7EB", text: "#374151", dot: "#6B7280" };
+
+        root.innerHTML = `
+          <!-- Back -->
+          <a href="./requests.html"
+            class="inline-flex items-center gap-1.5 text-sm text-gray-500
+                  hover:text-[#1A56DB] mb-5 transition">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+            </svg>
+            Back to Requests
+          </a>
+
+          <!-- Header banner -->
+          <div class="bg-[#E8EDF2] rounded-2xl px-8 py-6 flex items-center justify-between mb-6">
+            <div>
+              <h1 class="text-[26px] font-black text-gray-900">${r.documentType}</h1>
+              <p class="text-sm text-gray-500 mt-1">
+                Requested by
+                <span class="text-[#1A56DB] font-semibold">${r.userName}</span>
+                &bull; ${fmtDate(r.createdAt)}
+              </p>
+            </div>
+            <div class="flex items-center gap-3">
+              <div class="text-right">
+                <p class="text-[10px] font-bold text-gray-400 tracking-widest uppercase mb-0.5">
+                  Current Status
+                </p>
+                <p class="text-lg font-black" style="color:${statusColors.text}">
+                  ${r.status.toUpperCase()}
+                </p>
+              </div>
+              <div class="w-10 h-10 rounded-full flex items-center justify-center"
+                  style="background:${statusColors.bg}">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5"
+                    style="color:${statusColors.dot}" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <!-- Two-column layout -->
+          <div class="grid grid-cols-1 xl:grid-cols-[1fr_340px] gap-5">
+
+            <!-- Left: Resident Profile + ID -->
+            <div class="space-y-5">
+              <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+                <div class="flex items-center justify-between mb-5">
+                  <div class="flex items-center gap-2">
+                    <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor"
+                        stroke-width="2" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                    </svg>
+                    <h2 class="font-bold text-gray-800 text-sm">Resident Profile</h2>
+                  </div>
+                  ${residentVerified
+                    ? `<span class="text-[10px] font-bold text-green-600 bg-green-100
+                                    px-2.5 py-1 rounded-full">✓ Previously Verified</span>`
+                    : ""}
+                </div>
+                <div class="grid grid-cols-2 gap-x-8 gap-y-5">
+                  <div>
+                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">
+                      Full Legal Name
+                    </p>
+                    <p class="text-sm font-semibold text-gray-800">
+                      ${resident?.fullName ?? r.userName}
+                    </p>
+                  </div>
+                  <div>
+                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">
+                      Date of Birth
+                    </p>
+                    <p class="text-sm font-semibold text-gray-800">
+                      ${resident?.birthdate ? fmtFullDate(resident.birthdate) : "—"}
+                    </p>
+                  </div>
+                  <div>
+                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">
+                      Registered Address
+                    </p>
+                    <p class="text-sm font-semibold text-gray-800">${resident?.address ?? "—"}</p>
+                  </div>
+                  <div>
+                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">
+                      Contact Number
+                    </p>
+                    <p class="text-sm font-semibold text-gray-800">
+                      ${resident?.contactNumber ?? "—"}
+                    </p>
+                  </div>
+                  <div>
+                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">
+                      Purpose
+                    </p>
+                    <p class="text-sm font-semibold text-gray-800">${r.purpose ?? "—"}</p>
+                  </div>
+                  ${r.additionalInfo ? `
+                  <div>
+                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">
+                      Additional Info
+                    </p>
+                    <p class="text-sm font-semibold text-gray-800">${r.additionalInfo}</p>
+                  </div>` : ""}
+                </div>
+              </div>
+
+              <!-- Verification Documents -->
+              <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+                <div class="flex items-center gap-2 mb-4">
+                  <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor"
+                      stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0
+                        01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                  </svg>
+                  <h2 class="font-bold text-gray-800 text-sm">Verification Documents</h2>
+                </div>
+                ${r.idImageUrl
+                  ? `<div class="rounded-xl overflow-hidden border border-gray-200 cursor-pointer"
+                          onclick="window.open('${r.idImageUrl}','_blank')">
+                      <img src="${r.idImageUrl}" alt="Submitted ID"
+                        class="w-full max-h-64 object-cover hover:opacity-90 transition"/>
+                    </div>
+                    <p class="text-xs text-gray-400 mt-2 text-center">Click to view full size</p>`
+                  : `<div class="flex flex-col items-center justify-center h-36 rounded-xl
+                                border-2 border-dashed border-gray-200 text-gray-400">
+                      <svg class="w-8 h-8 mb-2" fill="none" stroke="currentColor"
+                            stroke-width="1.5" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                          d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0
+                              012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2
+                              2 0 00-2 2v12a2 2 0 002 2z"/>
+                      </svg>
+                      <p class="text-sm">No ID submitted</p>
+                      ${residentVerified
+                        ? `<p class="text-xs text-green-600 font-medium mt-1">
+                              Resident is already verified from a previous request.
+                            </p>`
+                        : ""}
+                    </div>`}
+              </div>
+            </div>
+
+            <!-- Right: Management Console -->
+            <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 h-fit">
+              <div class="flex items-center gap-2 mb-5">
+                <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor"
+                    stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573
+                      1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426
+                      1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37
+                      2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724
+                      1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0
+                      00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066
+                      -2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                  <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                </svg>
+                <h2 class="font-bold text-gray-800 text-sm">Management Console</h2>
+              </div>
+
+              <!-- Status pipeline -->
+              <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">
+                Status Pipeline
+              </p>
+
+              ${isRejected ? `
+              <div class="p-4 bg-red-50 border border-red-200 rounded-xl mb-4 text-center">
+                <p class="text-sm font-bold text-red-600">Request Rejected</p>
+                <p class="text-xs text-red-400 mt-1">
+                  This request has been rejected and cannot be advanced.
+                </p>
+              </div>` : ""}
+
+              <div class="space-y-2 mb-5" id="pipeline-steps">
+                ${STEPS.map((step, i) => {
+                  const isDone    = !isRejected && i < currentStepIdx;
+                  const isCurrent = !isRejected && i === currentStepIdx;
+                  const isNext    = !isRejected && i === currentStepIdx + 1 && !isFinal;
+                  const isLocked  = isRejected || i > currentStepIdx + 1 || (isFinal && i >= currentStepIdx);
+
+                  // Auto-verified: resident already verified and this is Verified step but not current
+                  const autoVerified = step.key === "Verified" && residentVerified && !isCurrent && i <= currentStepIdx;
+
+                  let rowCls  = "flex items-center gap-3 p-3 rounded-xl border transition ";
+                  let dotCls  = "w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ";
+                  let lblCls  = "text-sm font-semibold ";
+                  let action  = "";
+
+                  if (isDone) {
+                    rowCls += "bg-green-50 border-green-200";
+                    dotCls += "bg-green-500 text-white";
+                    lblCls += "text-green-700";
+                    action  = `<span class="ml-auto text-[10px] font-bold text-green-600
+                                            bg-green-100 px-2 py-0.5 rounded-full">DONE</span>`;
+                  } else if (isCurrent) {
+                    rowCls += "bg-blue-50 border-[#1A56DB]";
+                    dotCls += "bg-[#1A56DB] text-white";
+                    lblCls += "text-[#1A56DB]";
+                    action  = `<span class="ml-auto text-[10px] font-bold text-[#1A56DB]
+                                            bg-blue-100 px-2 py-0.5 rounded-full">CURRENT</span>`;
+                  } else if (isNext) {
+                    rowCls += "bg-white border-gray-200 hover:border-[#1A56DB] hover:bg-blue-50/30";
+                    dotCls += "bg-gray-100 text-gray-500";
+                    lblCls += "text-gray-700";
+                    action  = `<button data-step="${step.key}" data-userid="${r.userId ?? ""}"
+                                class="step-btn ml-auto text-[10px] font-bold text-[#1A56DB]
+                                        bg-blue-50 hover:bg-blue-100 px-3 py-1 rounded-full
+                                        transition border border-[#1A56DB]/30 cursor-pointer">
+                                Move Here →
+                              </button>`;
+                  } else {
+                    rowCls += "bg-gray-50 border-gray-100 opacity-40";
+                    dotCls += "bg-gray-200 text-gray-400";
+                    lblCls += "text-gray-400";
+                  }
+
+                  const dotContent = isDone
+                    ? `<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5"
+                            viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                      </svg>`
+                    : `${i + 1}`;
+
+                  // Extra note for auto-verified
+                  const verifiedNote = (step.key === "Verified" && residentVerified && isCurrent)
+                    ? `<p class="text-[11px] text-blue-500 font-medium mt-0.5">
+                        ✓ Resident previously verified — ID check not required again.
+                      </p>`
+                    : "";
+
+                  // Extra note for Ready step
+                  const readyNote = step.key === "Ready"
+                    ? `<p class="text-[11px] text-gray-400 mt-0.5">
+                        After marking Ready, document moves to Digital Archive.
+                      </p>`
+                    : "";
+
+                  return `
+                    <div class="${rowCls}">
+                      <div class="${dotCls}">${dotContent}</div>
+                      <div class="flex-1 min-w-0">
+                        <p class="${lblCls} leading-tight">${step.label}</p>
+                        <p class="text-[11px] text-gray-400 mt-0.5">${step.desc}</p>
+                        ${verifiedNote}
+                        ${readyNote}
+                      </div>
+                      ${action}
+                    </div>`;
+                }).join("")}
+              </div>
+
+              <!-- Remarks -->
+              <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">
+                Internal Remarks (Optional)
+              </p>
+              <textarea id="remarks" rows="3"
+                placeholder="Add a note for other staff members…"
+                class="w-full px-3.5 py-3 border border-gray-200 rounded-xl text-sm resize-none mb-4
+                      text-gray-700 placeholder-gray-400
+                      focus:outline-none focus:ring-2 focus:ring-[#1A56DB]/20
+                      focus:border-[#1A56DB] transition"></textarea>
+
+              ${!isRejected && !isFinal ? `
+              <!-- Approve & Notify = move to Verified -->
+              <button id="btn-approve"
+                class="w-full bg-[#1A56DB] hover:bg-[#1040A8] text-white font-semibold
+                      py-3 rounded-xl text-sm transition flex items-center justify-center gap-2 mb-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                Approve &amp; Notify Resident
+              </button>
+
+              <!-- Update Status Only = advance one step -->
+              <button id="btn-update"
+                class="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold
+                      py-3 rounded-xl text-sm transition flex items-center justify-center gap-2 mb-3">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0
+                      0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                </svg>
+                Update Status Only
+              </button>
+
+              <!-- Reject -->
+              <button id="btn-reject"
+                class="w-full text-red-500 text-sm font-semibold hover:text-red-700
+                      transition flex items-center justify-center gap-1.5 py-1">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0
+                      015.636 5.636m12.728 12.728L5.636 5.636"/>
+                </svg>
+                Reject Request
+              </button>` : ""}
+
+              ${isReady ? `
+              <!-- Ready: resident hasn't picked up yet — show Mark as Picked Up button -->
+              <button id="btn-pickedup"
+                class="w-full bg-green-600 hover:bg-green-700 text-white font-semibold
+                      py-3 rounded-xl text-sm transition flex items-center justify-center gap-2 mb-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M5 13l4 4L19 7"/>
+                </svg>
+                Mark as Picked Up
+              </button>
+              <p class="text-xs text-gray-400 text-center">
+                Click when resident physically collects the document.
+                This will move it to the Digital Archive.
+              </p>` : ""}
+
+              ${isFinal ? `
+                <div class="p-4 bg-green-50 border border-green-200 rounded-xl text-center mb-3">
+                  <div class="flex items-center justify-center gap-2 mb-1">
+                    <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                    </svg>
+                    <p class="text-sm font-bold text-green-700">Document Collected</p>
+                  </div>
+                  <p class="text-xs text-green-500">
+                    Resident has picked up the document.
+                  </p>
+                </div>
+                <a href="./archive.html"
+                  class="w-full bg-[#1A56DB] hover:bg-[#1040A8] text-white font-semibold
+                        py-3 rounded-xl text-sm transition flex items-center justify-center gap-2">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/>
+                  </svg>
+                  View in Digital Archive
+                </a>` : ""}
+            </div>
+          </div>
+        `;
+
+        // ── Wire "Move Here" pipeline buttons ────────────────────────────────
+        document.querySelectorAll(".step-btn").forEach(btn => {
+          btn.addEventListener("click", async () => {
+            const targetStatus = btn.dataset.step;
+            const userId       = btn.dataset.userid;
+            const note         = document.getElementById("remarks")?.value.trim() ?? "";
+            btn.textContent    = "Saving…";
+            btn.disabled       = true;
+
+            // When moving to Verified, also mark resident as verified
+            if (targetStatus === "Verified" && userId) {
+              try { await UserService.setVerified(userId, true); } catch {}
+            }
+
+            await RequestService.updateStatus(reqId, targetStatus, note);
+            if (document.getElementById("remarks")) {
+              document.getElementById("remarks").value = "";
+            }
+            // UI re-renders automatically via listenOne
+          });
+        });
+
+        // ── Approve & Notify (moves to Verified, confirms via dialog) ─────────
+        document.getElementById("btn-approve")?.addEventListener("click", openConfirm);
+
+        document.getElementById("btn-pickedup")?.addEventListener("click", async () => {
+          const btn  = document.getElementById("btn-pickedup");
+          const note = document.getElementById("remarks")?.value.trim() ?? "";
+          btn.textContent = "Saving…";
+          btn.disabled    = true;
+          await RequestService.updateStatus(reqId, "PickedUp", note);
+          // UI auto re-renders via listenOne — will show Archive link
+        });
+
+        document.getElementById("confirm-ok").onclick = async () => {
+          const note = document.getElementById("remarks")?.value.trim() ?? "";
+          const okBtn = document.getElementById("confirm-ok");
+          okBtn.textContent = "Saving…";
+          okBtn.disabled    = true;
+
+          // Mark resident as verified in users collection
+          if (r.userId) {
+            try { await UserService.setVerified(r.userId, true); } catch {}
+          }
+
+          //await RequestService.updateStatus(reqId, "Verified", note);
+          await RequestService.updateStatus(reqId, "Ready", note);
+          closeConfirm();
+          okBtn.textContent = "Confirm Approval";
+          okBtn.disabled    = false;
+          if (document.getElementById("remarks")) {
+            document.getElementById("remarks").value = "";
+          }
+        };
+
+        // ── Update Status Only (advances exactly one step forward) ────────────
+        document.getElementById("btn-update")?.addEventListener("click", async () => {
+          const btn        = document.getElementById("btn-update");
+          const nextStep   = STEPS[currentStepIdx + 1];
+          const note       = document.getElementById("remarks")?.value.trim() ?? "";
+
+          if (!nextStep) return;
+
+          btn.textContent = "Saving…";
+          btn.disabled    = true;
+
+          if (nextStep.key === "Verified" && r.userId) {
+            try { await UserService.setVerified(r.userId, true); } catch {}
+          }
+
+          await RequestService.updateStatus(reqId, nextStep.key, note);
+          if (document.getElementById("remarks")) {
+            document.getElementById("remarks").value = "";
+          }
+          // listenOne auto-re-renders
+        });
+
+        // ── Reject ────────────────────────────────────────────────────────────
+        document.getElementById("btn-reject")?.addEventListener("click", openReject);
+
+        document.getElementById("reject-ok").onclick = async () => {
+          const reason  = document.getElementById("reject-reason")?.value.trim() ?? "";
+          const okBtn   = document.getElementById("reject-ok");
+          okBtn.textContent = "Rejecting…";
+          okBtn.disabled    = true;
+          await RequestService.updateStatus(
+            reqId, "Rejected", reason || "Request rejected by admin."
+          );
+          closeReject();
+          okBtn.textContent = "Reject Request";
+          okBtn.disabled    = false;
+          if (document.getElementById("reject-reason")) {
+            document.getElementById("reject-reason").value = "";
+          }
+        };
+
+      }); // end listenOne
+    }); // end requireAuth
+  </script>
+</body>
+</html>

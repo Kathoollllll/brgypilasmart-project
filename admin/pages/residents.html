@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>BrgyPilaSmart — Digital Archive</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="../css/styles.css"/>
+  <link rel="preconnect" href="https://www.gstatic.com" crossorigin/>
+  <link rel="dns-prefetch" href="https://www.gstatic.com"/>
+  <link rel="dns-prefetch" href="https://firestore.googleapis.com"/>
+</head>
+<body class="min-h-screen bg-slate-100 flex overflow-hidden">
+
+  <div id="sidebar-slot"></div>
+
+  <div class="flex-1 flex flex-col min-w-0 h-screen overflow-y-auto">
+    <div id="topbar-slot"></div>
+
+    <main class="flex-1 p-6 page-content">
+
+      <!-- Header -->
+      <div class="flex items-center justify-between mb-2">
+        <div>
+          <h2 class="text-xl font-bold text-slate-800">Digital Archive</h2>
+          <p class="text-slate-500 text-xs mt-0.5">All completed document requests — status: Ready.</p>
+        </div>
+        <!-- Search -->
+        <div class="relative">
+          <svg class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+               fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+          </svg>
+          <input id="archive-search" type="text" placeholder="Search archive…"
+            class="pl-9 pr-4 py-2 text-sm border border-slate-200 rounded-lg bg-white
+                   focus:outline-none focus:ring-2 focus:ring-[#1A56DB] w-48 transition"/>
+        </div>
+      </div>
+
+      <!-- Count badge -->
+      <p id="archive-count" class="text-xs text-slate-400 mb-5">Loading…</p>
+
+      <!-- Cards grid -->
+      <div id="archive-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
+        <div class="col-span-full text-center py-16 text-slate-400">Loading…</div>
+      </div>
+
+    </main>
+  </div>
+
+  <script type="module">
+    import { AuthService }    from "../js/auth.service.js";
+    import { RequestService } from "../js/request.service.js";
+    import { renderLayout, wireLogout, showAdminInfo, statusBadge, fmtDate } from "../js/ui.helpers.js";
+
+    renderLayout("archive", "Digital Archive");
+
+    let allReady = [];
+
+    function renderGrid(reqs) {
+      const grid = document.getElementById("archive-grid");
+      document.getElementById("archive-count").textContent =
+        `${reqs.length} completed request${reqs.length !== 1 ? "s" : ""}`;
+
+      if (!reqs.length) {
+        grid.innerHTML = `
+          <div class="col-span-full flex flex-col items-center py-20 text-slate-400">
+            <svg class="w-16 h-16 mb-3 text-slate-200" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/>
+            </svg>
+            <p class="font-medium">No archived requests yet.</p>
+            <p class="text-sm mt-1">Completed requests will appear here.</p>
+          </div>`;
+        return;
+      }
+
+      grid.innerHTML = reqs.map((r) => `
+        <div class="bg-white rounded-xl border border-slate-200 overflow-hidden hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer group"
+             onclick="window.location.href='./request-detail.html?id=${r.id}'">
+
+          <!-- ID image or placeholder -->
+          ${r.idImageUrl
+            ? `<div class="relative h-32 overflow-hidden">
+                <img src="${r.idImageUrl}" alt="ID" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"/>
+                <div class="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
+               </div>`
+            : `<div class="h-32 bg-gradient-to-br from-blue-50 to-slate-100 flex items-center justify-center">
+                <svg class="w-10 h-10 text-slate-200" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 9h3.75M15 12h3.75M15 15h3.75M4.5 19.5h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5zm6-10.125a1.875 1.875 0 11-3.75 0 1.875 1.875 0 013.75 0zm1.294 6.336a6.721 6.721 0 01-3.17.789 6.721 6.721 0 01-3.168-.789 3.376 3.376 0 016.338 0z"/>
+                </svg>
+               </div>`}
+
+          <div class="p-4">
+            <!-- Status + doc type -->
+            <div class="flex items-start justify-between mb-2">
+              <div>
+                <p class="font-semibold text-slate-800 text-sm leading-tight">${r.documentType}</p>
+                <p class="text-xs text-slate-500 mt-0.5">${r.userName}</p>
+              </div>
+              ${statusBadge(r.status)}
+            </div>
+
+            <!-- Ref + date -->
+            <div class="flex items-center justify-between pt-3 border-t border-slate-100 mt-3">
+              <span class="font-mono text-xs text-slate-400">${r.referenceNo}</span>
+              <span class="text-xs text-slate-400">${fmtDate(r.createdAt)}</span>
+            </div>
+
+            <!-- Actions -->
+            <div class="flex gap-2 mt-3">
+              <button onclick="event.stopPropagation(); window.location.href='./request-detail.html?id=${r.id}'"
+                class="flex-1 text-xs font-medium text-[#1A56DB] bg-blue-50 hover:bg-blue-100 py-1.5 rounded-lg transition">
+                View Details
+              </button>
+              ${r.idImageUrl ? `
+              <button onclick="event.stopPropagation(); window.open('${r.idImageUrl}','_blank')"
+                class="flex-1 text-xs font-medium text-slate-600 bg-slate-50 hover:bg-slate-100 py-1.5 rounded-lg transition">
+                View ID
+              </button>` : ""}
+            </div>
+          </div>
+        </div>
+      `).join("");
+    }
+
+    function applySearch() {
+      const q = document.getElementById("archive-search").value.toLowerCase();
+      renderGrid(q
+        ? allReady.filter((r) =>
+            r.userName?.toLowerCase().includes(q) ||
+            r.referenceNo?.toLowerCase().includes(q) ||
+            r.documentType?.toLowerCase().includes(q))
+        : allReady
+      );
+    }
+
+    document.getElementById("archive-search").addEventListener("input", applySearch);
+
+    AuthService.requireAuth((user) => {
+      showAdminInfo(user);
+      wireLogout(AuthService);
+      RequestService.listenReady((reqs) => { allReady = reqs; applySearch(); });
+    });
+  </script>
+</body>
+</html>

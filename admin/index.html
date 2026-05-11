@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin Login — BrgyPilaSmart</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="./css/styles.css"/>
+  <link rel="preconnect" href="https://www.gstatic.com" crossorigin/>
+  <link rel="dns-prefetch" href="https://www.gstatic.com"/>
+  <link rel="dns-prefetch" href="https://firestore.googleapis.com"/>
+</head>
+
+<!-- Light blue-gray page background matching design -->
+<body class="min-h-screen bg-[#E8ECF0] flex items-center justify-center p-6">
+
+  <!-- Centered card wrapper -->
+  <div class="w-full max-w-[680px]">
+
+    <!-- Two-panel card -->
+    <div class="flex rounded-2xl overflow-hidden shadow-md bg-white">
+
+      <!-- ── Left panel: branding (gray bg) ────────────────────────────────── -->
+      <div class="hidden md:flex flex-col bg-[#F2F4F6] p-10 w-[44%] shrink-0">
+
+        <!-- Logo -->
+        <div class="flex items-center gap-2 mb-8">
+          <svg class="w-5 h-5 text-[#1A56DB]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round"
+              d="M3 21h18M3 10h18M5 6l7-3 7 3M4 10v11M20 10v11"/>
+          </svg>
+          <span class="text-[#1A56DB] font-bold text-sm">BrgyPilaSmart</span>
+        </div>
+
+        <!-- Hero text — blue, bold, underlined like design -->
+        <div class="flex-1">
+          <h1 class="text-[#1A56DB] font-extrabold text-[22px] leading-snug underline
+                     underline-offset-2 decoration-[#1A56DB] mb-4">
+            Smart Barangay<br/>Services.
+          </h1>
+          <p class="text-gray-500 text-xs leading-relaxed">
+            A secure platform for Barangay Pila staff to
+            manage requests, documents, and community
+            services efficiently.
+          </p>
+        </div>
+      </div>
+
+      <!-- ── Right panel: form ──────────────────────────────────────────────── -->
+      <div class="flex-1 flex flex-col justify-center px-10 py-10 bg-white">
+
+        <h2 class="text-gray-900 text-xl font-bold mb-1">Staff Login</h2>
+        <p class="text-gray-400 text-xs mb-7">Welcome. Please enter your credentials.</p>
+
+        <!-- Error message -->
+        <div id="error-box"
+          class="hidden flex items-center gap-2 bg-red-50 border border-red-200
+                 text-red-600 text-xs rounded-lg px-3 py-2.5 mb-4">
+          <svg class="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd"
+              d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012
+                 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+          </svg>
+          <span id="error-text">Invalid credentials.</span>
+        </div>
+
+        <form id="login-form" class="space-y-4" novalidate>
+
+          <!-- Email field -->
+          <div>
+            <label class="block text-[10px] font-bold text-gray-400 tracking-widest uppercase mb-1.5">
+              Admin Username/Email
+            </label>
+            <div class="relative">
+              <!-- Person icon -->
+              <svg class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-300 pointer-events-none"
+                   fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+              </svg>
+              <input id="email" type="email" required
+                class="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-lg text-sm bg-white
+                       text-gray-800 placeholder-gray-300
+                       focus:outline-none focus:ring-2 focus:ring-[#1A56DB]/20
+                       focus:border-[#1A56DB] transition"/>
+            </div>
+          </div>
+
+          <!-- Password field -->
+          <div>
+            <div class="flex items-center justify-between mb-1.5">
+              <label class="text-[10px] font-bold text-gray-400 tracking-widest uppercase">
+                Password
+              </label>
+              <button type="button" id="forgot-btn"
+                class="text-[10px] text-[#1A56DB] font-semibold hover:underline">
+                Forgot Password?
+              </button>
+            </div>
+            <div class="relative">
+              <!-- Lock icon -->
+              <svg class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-300 pointer-events-none"
+                   fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0
+                     00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+              </svg>
+              <input id="password" type="password" required
+                class="w-full pl-9 pr-10 py-2.5 border border-gray-200 rounded-lg text-sm bg-white
+                       text-gray-800
+                       focus:outline-none focus:ring-2 focus:ring-[#1A56DB]/20
+                       focus:border-[#1A56DB] transition"/>
+              <!-- Show/hide toggle -->
+              <button type="button" id="toggle-pass"
+                class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-500 transition">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0zM2.458 12C3.732 7.943 7.523 5 12
+                       5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542
+                       7-4.477 0-8.268-2.943-9.542-7z"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Remember me -->
+          <label class="flex items-center gap-2 cursor-pointer select-none">
+            <input type="checkbox"
+              class="w-3.5 h-3.5 rounded border-gray-300 text-[#1A56DB] focus:ring-[#1A56DB]"/>
+            <span class="text-xs text-gray-500">Remember this device for 30 days</span>
+          </label>
+
+          <!-- Submit button -->
+          <button id="login-btn" type="submit"
+            class="w-full bg-[#1A56DB] hover:bg-[#1040A8] disabled:opacity-60
+                   text-white font-semibold py-2.5 rounded-lg text-sm transition
+                   flex items-center justify-center gap-2 mt-1">
+            <svg id="btn-spin" class="hidden spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+            </svg>
+            <span id="btn-label">Login</span>
+          </button>
+
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Forgot Password modal ─────────────────────────────────────────────── -->
+  <div id="forgot-modal"
+    class="modal-wrap fixed inset-0 bg-black/30 backdrop-blur-sm z-50
+           items-center justify-center p-4"
+    style="display:none">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
+      <h3 class="font-bold text-gray-800 text-base mb-1">Reset Password</h3>
+      <p class="text-xs text-gray-400 mb-4">
+        Enter your email and we'll send you a reset link.
+      </p>
+      <input id="reset-email" type="email" placeholder="admin@brgy.gov.ph"
+        class="w-full px-3.5 py-2.5 border border-gray-200 rounded-lg text-sm mb-3
+               focus:outline-none focus:ring-2 focus:ring-[#1A56DB]/20
+               focus:border-[#1A56DB] transition"/>
+      <p id="reset-success"
+        class="hidden text-xs text-green-600 text-center mb-3 font-medium">
+        ✓ Reset link sent! Check your inbox.
+      </p>
+      <div class="flex gap-2">
+        <button id="reset-cancel"
+          class="flex-1 py-2 rounded-lg border border-gray-200 text-sm
+                 text-gray-600 hover:bg-gray-50 font-medium transition">
+          Cancel
+        </button>
+        <button id="reset-send"
+          class="flex-1 py-2 rounded-lg bg-[#1A56DB] hover:bg-[#1040A8]
+                 text-white text-sm font-semibold transition">
+          Send Link
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { AuthService } from "./js/auth.service.js";
+
+    // ── Skip to dashboard if already logged in ──────────────────────────────
+    AuthService.redirectIfLoggedIn();
+
+    // ── Toggle password visibility ──────────────────────────────────────────
+    document.getElementById("toggle-pass").addEventListener("click", () => {
+      const p = document.getElementById("password");
+      p.type = p.type === "password" ? "text" : "password";
+    });
+
+    // ── Modal helpers ───────────────────────────────────────────────────────
+    const modal       = document.getElementById("forgot-modal");
+    const resetEmail  = document.getElementById("reset-email");
+    const resetMsg    = document.getElementById("reset-success");
+    const resetSend   = document.getElementById("reset-send");
+    const resetCancel = document.getElementById("reset-cancel");
+
+    function openModal()  { modal.style.display = "flex"; }
+    function closeModal() {
+      modal.style.display = "none";
+      resetEmail.value = "";
+      resetMsg.classList.add("hidden");
+      resetMsg.className = "hidden text-xs font-medium text-center mb-3";
+    }
+
+    document.getElementById("forgot-btn").addEventListener("click", openModal);
+
+    resetCancel.addEventListener("click", closeModal);
+
+    // Close on backdrop click
+    modal.addEventListener("click", (e) => {
+      if (e.target === modal) closeModal();
+    });
+
+    resetSend.addEventListener("click", async () => {
+      const email = resetEmail.value.trim();
+      if (!email) {
+        resetMsg.textContent = "Please enter your email address.";
+        resetMsg.className = "text-xs font-medium text-center mb-3 text-red-500";
+        resetMsg.classList.remove("hidden");
+        return;
+      }
+
+      resetSend.disabled = true;
+      resetSend.textContent = "Sending…";
+
+      try {
+        await AuthService.resetPassword(email);
+        resetMsg.textContent = "✓ Reset link sent! Check your inbox.";
+        resetMsg.className = "text-xs font-medium text-center mb-3 text-green-600";
+        resetMsg.classList.remove("hidden");
+        setTimeout(closeModal, 2500); // auto-close after 2.5s
+      } catch (err) {
+        resetMsg.textContent = err.code === "auth/user-not-found"
+          ? "No account found with that email."
+          : "Could not send reset email. Try again.";
+        resetMsg.className = "text-xs font-medium text-center mb-3 text-red-500";
+        resetMsg.classList.remove("hidden");
+      } finally {
+        resetSend.disabled = false;
+        resetSend.textContent = "Send Link";
+      }
+    });
+
+    // ── Login form ──────────────────────────────────────────────────────────
+    document.getElementById("login-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const btn    = document.getElementById("login-btn");
+      const spin   = document.getElementById("btn-spin");
+      const label  = document.getElementById("btn-label");
+      const errBox = document.getElementById("error-box");
+
+      btn.disabled = true;
+      spin.classList.remove("hidden");
+      label.textContent = "Signing in…";
+      errBox.classList.add("hidden");
+
+      try {
+        await AuthService.login(
+          document.getElementById("email").value.trim(),
+          document.getElementById("password").value
+        );
+        window.location.href = "./pages/dashboard.html";
+      } catch {
+        document.getElementById("error-text").textContent =
+          "Invalid email or password. Please try again.";
+        errBox.classList.remove("hidden");
+        btn.disabled = false;
+        spin.classList.add("hidden");
+        label.textContent = "Login";
+      }
+    });
+  </script>
+</body>
+</html>

@@ -11,13 +11,24 @@ class RequestService {
 
   CollectionReference get _col => _db.collection(AppConstants.requestsCol);
 
+  // Stream<List<DocumentRequest>> userRequests(String uid) =>
+  //     _col.where('userId', isEqualTo: uid)
+  //         .orderBy('createdAt', descending: true)
+  //         .snapshots()
+  //         .map((s) => s.docs
+  //             .map((d) => DocumentRequest.fromMap(d.data() as Map<String, dynamic>, d.id))
+  //             .toList());
   Stream<List<DocumentRequest>> userRequests(String uid) =>
-      _col.where('userId', isEqualTo: uid)
-          .orderBy('createdAt', descending: true)
-          .snapshots()
-          .map((s) => s.docs
+    _col.where('userId', isEqualTo: uid)
+        .snapshots()
+        .map((s) {
+          final requests = s.docs
               .map((d) => DocumentRequest.fromMap(d.data() as Map<String, dynamic>, d.id))
-              .toList());
+              .toList();
+          // Sort locally instead of using orderBy
+          requests.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          return requests;
+        });
 
   Stream<DocumentRequest?> requestById(String id) =>
       _col.doc(id).snapshots().map((s) =>

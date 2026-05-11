@@ -73,6 +73,23 @@ class _HomeScreenState extends State<HomeScreen> {
               StreamBuilder<List<DocumentRequest>>(
                 stream: _reqSvc.userRequests(_user!.uid),
                 builder: (ctx, snap) {
+                  // Add error handling
+                  if (snap.hasError) {
+                    return Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.error_outline, color: AppColors.primary),
+                          const SizedBox(height: 8),
+                          Text('Error loading requests: ${snap.error}', 
+                            style: const TextStyle(fontSize: 12, color: AppColors.textSub),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+
                   if (snap.connectionState == ConnectionState.waiting) {
                     return const Center(child: CircularProgressIndicator());
                   }
@@ -88,6 +105,25 @@ class _HomeScreenState extends State<HomeScreen> {
               )
             else
               const Center(child: CircularProgressIndicator()),
+            // if (_user != null)
+            //   StreamBuilder<List<DocumentRequest>>(
+            //     stream: _reqSvc.userRequests(_user!.uid),
+            //     builder: (ctx, snap) {
+            //       if (snap.connectionState == ConnectionState.waiting) {
+            //         return const Center(child: CircularProgressIndicator());
+            //       }
+            //       final reqs = snap.data ?? [];
+            //       if (reqs.isEmpty) {
+            //         return const EmptyState(icon: Icons.description_outlined, title: 'No requests yet',
+            //           subtitle: 'Submit your first barangay document request.');
+            //       }
+            //       return Column(
+            //         children: reqs.take(3).map((r) => _RequestCard(request: r)).toList(),
+            //       );
+            //     },
+            //   )
+            // else
+            //   const Center(child: CircularProgressIndicator()),
           ],
         ),
       ),

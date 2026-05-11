@@ -20,6 +20,7 @@ class _StatusTrackerScreenState extends State<StatusTrackerScreen> {
   final _reqSvc = RequestService();
   String? _uid;
   String? _selectedId;
+  late Stream<List<DocumentRequest>> _requestsStream;  // For the disappearing requests issue
 
   @override
   void didChangeDependencies() {
@@ -33,98 +34,223 @@ class _StatusTrackerScreenState extends State<StatusTrackerScreen> {
     _loadUid();
   }
 
-  Future<void> _loadUid() async {
+  // Future<void> _loadUid() async {
+  //   final u = await _auth.getCurrentUserModel();
+  //   if (mounted) setState(() => _uid = u?.uid);
+  // }
+   Future<void> _loadUid() async {
     final u = await _auth.getCurrentUserModel();
-    if (mounted) setState(() => _uid = u?.uid);
+    if (mounted) {
+      setState(() {
+        _uid = u?.uid;
+        // Initialize stream only once when UID is available
+        if (_uid != null) {
+          _requestsStream = _reqSvc.userRequests(_uid!);
+        }
+      });
+    }
   }
 
-  @override
-  Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text(AppConstants.appName)),
-    body: _uid == null
-        ? const Center(child: CircularProgressIndicator())
-        : StreamBuilder<List<DocumentRequest>>(
-            stream: _reqSvc.userRequests(_uid!),
-            builder: (ctx, snap) {
-              if (snap.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
-              }
-              final reqs = snap.data ?? [];
-              if (reqs.isEmpty) {
-                return const EmptyState(
-                  icon: Icons.track_changes_outlined,
-                  title: 'No requests to track',
-                  subtitle: 'Your submitted requests will appear here.',
-                );
-              }
-              final selected = _selectedId != null
-                  ? reqs.firstWhere((r) => r.id == _selectedId, orElse: () => reqs.first)
-                  : reqs.first;
-
-              return Column(
-                children: [
-                  // Current status chip
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-                    child: Row(
+    @override
+    Widget build(BuildContext context) => Scaffold(
+      appBar: AppBar(title: const Text(AppConstants.appName)),
+      body: _uid == null
+          ? const Center(child: CircularProgressIndicator())
+          : StreamBuilder<List<DocumentRequest>>(
+              stream: _requestsStream,  // Use cached stream
+              builder: (ctx, snap) {
+                // Add error handling
+                if (snap.hasError) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Text('CURRENT STATUS', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.textSub, letterSpacing: 1)),
-                        const SizedBox(width: 12),
-                        Text(selected.status,
-                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.primary)),
+                        const Icon(Icons.error_outline, size: 48, color: AppColors.primary),
+                        const SizedBox(height: 16),
+                        const Text('Failed to load requests', style: TextStyle(fontWeight: FontWeight.w600)),
+                        const SizedBox(height: 8),
+                        Text(snap.error.toString(), style: const TextStyle(fontSize: 12, color: AppColors.textSub)),
+                        const SizedBox(height: 16),
+                        AppButton(
+                          label: 'Retry',
+                          onPressed: () => setState(() {
+                            if (_uid != null) {
+                              _requestsStream = _reqSvc.userRequests(_uid!);
+                            }
+                          }),
+                        ),
                       ],
                     ),
-                  ),
-                  // Requests list (horizontal picker)
-                  if (reqs.length > 1) ...[
-                    const SizedBox(height: 12),
-                    SizedBox(
-                      height: 40,
-                      child: ListView.separated(
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                        scrollDirection: Axis.horizontal,
-                        itemCount: reqs.length,
-                        separatorBuilder: (_, __) => const SizedBox(width: 8),
-                        itemBuilder: (_, i) => ChoiceChip(
-                          label: Text(reqs[i].documentType, style: const TextStyle(fontSize: 11)),
-                          selected: reqs[i].id == selected.id,
-                          onSelected: (_) => setState(() => _selectedId = reqs[i].id),
-                          selectedColor: AppColors.primary,
-                          labelStyle: TextStyle(color: reqs[i].id == selected.id ? Colors.white : AppColors.textPrimary),
+                  );
+                }
+
+                if (snap.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                final reqs = snap.data ?? [];
+                if (reqs.isEmpty) {
+                  return const EmptyState(
+                    icon: Icons.track_changes_outlined,
+                    title: 'No requests to track',
+                    subtitle: 'Your submitted requests will appear here.',
+                  );
+                }
+                final selected = _selectedId != null
+                    ? reqs.firstWhere((r) => r.id == _selectedId, orElse: () => reqs.first)
+                    : reqs.first;
+
+                return Column(
+                  children: [
+                    // Current status chip
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+                      child: Row(
+                        children: [
+                          const Text('CURRENT STATUS', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.textSub, letterSpacing: 1)),
+                          const SizedBox(width: 12),
+                          Text(selected.status,
+                            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.primary)),
+                        ],
+                      ),
+                    ),
+                    // Requests list (horizontal picker)
+                    if (reqs.length > 1) ...[
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        height: 40,
+                        child: ListView.separated(
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          scrollDirection: Axis.horizontal,
+                          itemCount: reqs.length,
+                          separatorBuilder: (_, __) => const SizedBox(width: 8),
+                          itemBuilder: (_, i) => ChoiceChip(
+                            label: Text(reqs[i].documentType, style: const TextStyle(fontSize: 11)),
+                            selected: reqs[i].id == selected.id,
+                            onSelected: (_) => setState(() => _selectedId = reqs[i].id),
+                            selectedColor: AppColors.primary,
+                            labelStyle: TextStyle(color: reqs[i].id == selected.id ? Colors.white : AppColors.textPrimary),
+                          ),
                         ),
+                      ),
+                    ],
+                    const SizedBox(height: 16),
+
+                    // Progress stepper
+                    _StatusStepper(status: selected.status),
+                    const SizedBox(height: 16),
+
+                    // Timeline
+                    Expanded(
+                      child: ListView(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        children: [
+                          const Text('Timeline Activity', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
+                          const SizedBox(height: 12),
+                          ...selected.timeline.reversed.map((t) => _TimelineItem(update: t)),
+                        ],
                       ),
                     ),
                   ],
-                  const SizedBox(height: 16),
+                );
+              },
+            ),
+      bottomNavigationBar: AppBottomNav(
+        currentIndex: 2,
+        onTap: (i) {
+          const routes = [AppRoutes.home, AppRoutes.requestCats, AppRoutes.tracker, AppRoutes.profile];
+          if (i != 2) Navigator.pushReplacementNamed(context, routes[i]);
+        },
+      ),
+    );
+  }
+//   @override
+//   Widget build(BuildContext context) => Scaffold(
+//     appBar: AppBar(title: const Text(AppConstants.appName)),
+//     body: _uid == null
+//         ? const Center(child: CircularProgressIndicator())
+//         : StreamBuilder<List<DocumentRequest>>(
+//             // stream: _reqSvc.userRequests(_uid!),
+//             stream: _requestsStream,
+//             builder: (ctx, snap) {
+//               if (snap.connectionState == ConnectionState.waiting) {
+//                 return const Center(child: CircularProgressIndicator());
+//               }
+//               final reqs = snap.data ?? [];
+//               if (reqs.isEmpty) {
+//                 return const EmptyState(
+//                   icon: Icons.track_changes_outlined,
+//                   title: 'No requests to track',
+//                   subtitle: 'Your submitted requests will appear here.',
+//                 );
+//               }
+//               final selected = _selectedId != null
+//                   ? reqs.firstWhere((r) => r.id == _selectedId, orElse: () => reqs.first)
+//                   : reqs.first;
 
-                  // Progress stepper
-                  _StatusStepper(status: selected.status),
-                  const SizedBox(height: 16),
+//               return Column(
+//                 children: [
+//                   // Current status chip
+//                   Padding(
+//                     padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+//                     child: Row(
+//                       children: [
+//                         const Text('CURRENT STATUS', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.textSub, letterSpacing: 1)),
+//                         const SizedBox(width: 12),
+//                         Text(selected.status,
+//                           style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.primary)),
+//                       ],
+//                     ),
+//                   ),
+//                   // Requests list (horizontal picker)
+//                   if (reqs.length > 1) ...[
+//                     const SizedBox(height: 12),
+//                     SizedBox(
+//                       height: 40,
+//                       child: ListView.separated(
+//                         padding: const EdgeInsets.symmetric(horizontal: 20),
+//                         scrollDirection: Axis.horizontal,
+//                         itemCount: reqs.length,
+//                         separatorBuilder: (_, __) => const SizedBox(width: 8),
+//                         itemBuilder: (_, i) => ChoiceChip(
+//                           label: Text(reqs[i].documentType, style: const TextStyle(fontSize: 11)),
+//                           selected: reqs[i].id == selected.id,
+//                           onSelected: (_) => setState(() => _selectedId = reqs[i].id),
+//                           selectedColor: AppColors.primary,
+//                           labelStyle: TextStyle(color: reqs[i].id == selected.id ? Colors.white : AppColors.textPrimary),
+//                         ),
+//                       ),
+//                     ),
+//                   ],
+//                   const SizedBox(height: 16),
 
-                  // Timeline
-                  Expanded(
-                    child: ListView(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      children: [
-                        const Text('Timeline Activity', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
-                        const SizedBox(height: 12),
-                        ...selected.timeline.reversed.map((t) => _TimelineItem(update: t)),
-                      ],
-                    ),
-                  ),
-                ],
-              );
-            },
-          ),
-    bottomNavigationBar: AppBottomNav(
-      currentIndex: 2,
-      onTap: (i) {
-        const routes = [AppRoutes.home, AppRoutes.requestCats, AppRoutes.tracker, AppRoutes.profile];
-        if (i != 2) Navigator.pushReplacementNamed(context, routes[i]);
-      },
-    ),
-  );
-}
+//                   // Progress stepper
+//                   _StatusStepper(status: selected.status),
+//                   const SizedBox(height: 16),
+
+//                   // Timeline
+//                   Expanded(
+//                     child: ListView(
+//                       padding: const EdgeInsets.symmetric(horizontal: 20),
+//                       children: [
+//                         const Text('Timeline Activity', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
+//                         const SizedBox(height: 12),
+//                         ...selected.timeline.reversed.map((t) => _TimelineItem(update: t)),
+//                       ],
+//                     ),
+//                   ),
+//                 ],
+//               );
+//             },
+//           ),
+//     bottomNavigationBar: AppBottomNav(
+//       currentIndex: 2,
+//       onTap: (i) {
+//         const routes = [AppRoutes.home, AppRoutes.requestCats, AppRoutes.tracker, AppRoutes.profile];
+//         if (i != 2) Navigator.pushReplacementNamed(context, routes[i]);
+//       },
+//     ),
+//   );
+// }
 
 class _StatusStepper extends StatelessWidget {
   const _StatusStepper({required this.status});
