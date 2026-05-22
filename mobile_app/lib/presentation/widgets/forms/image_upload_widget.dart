@@ -49,6 +49,7 @@ class _ImageUploadWidgetState extends State<ImageUploadWidget> {
   Widget build(BuildContext context) => GestureDetector(
     onTap: _pick,
     child: Container(
+      width: double.infinity,
       height: 120,
       decoration: BoxDecoration(
         color: AppColors.chipBlue,
@@ -58,7 +59,7 @@ class _ImageUploadWidgetState extends State<ImageUploadWidget> {
       child: _image != null
           ? ClipRRect(
               borderRadius: BorderRadius.circular(12),
-              child: Image.file(_image!, fit: BoxFit.cover, width: double.infinity),
+              child: Image.file(_image!, fit: BoxFit.cover, width: double.infinity, height: 120),
             )
           : Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -66,7 +67,11 @@ class _ImageUploadWidgetState extends State<ImageUploadWidget> {
                 Icon(Icons.upload_file, color: AppColors.primary, size: 32),
                 const SizedBox(height: 8),
                 Text(widget.label, style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w500, fontSize: 13)),
-                Text('JPG, PNG up to 5MB', style: TextStyle(color: AppColors.textSub, fontSize: 11)),
+                const Text(
+                  'Tip: Camera photo works best.',
+                  style: TextStyle(color: AppColors.textSub, fontSize: 10),
+                  textAlign: TextAlign.center,
+                ), 
               ],
             ),
     ),

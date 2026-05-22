@@ -25,7 +25,20 @@ class AppUtils {
     final prefix = docType.split(' ').map((w) => w[0]).join();
     final year = DateTime.now().year;
     final id = DateTime.now().millisecondsSinceEpoch % 10000;
-    return 'BP-$year-${id.toString().padLeft(4, '0')}';
+    return '$prefix-$year-${id.toString().padLeft(4, '0')}';
+  }
+
+  static Route<T> fadeRoute<T>(Widget page, {RouteSettings? settings}) {
+    return PageRouteBuilder(
+      settings: settings,
+      pageBuilder: (_, __, ___) => page,
+      transitionDuration: const Duration(milliseconds: 260),
+      reverseTransitionDuration: const Duration(milliseconds: 220),
+      transitionsBuilder: (_, animation, __, child) => FadeTransition(
+        opacity: CurvedAnimation(parent: animation, curve: Curves.easeOut),
+        child: child,
+      ),
+    );
   }
 
   // Snackbar

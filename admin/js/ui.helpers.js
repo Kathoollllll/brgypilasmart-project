@@ -1,6 +1,6 @@
 // js/ui.helpers.js
 
-export const STATUSES = ["Requested", "Verified", "Printed", "Ready", "Rejected"];
+export const STATUSES = ["Requested", "Verified", "Printed", "Ready", "Rejected", "Canceled"];
 
 export const DOC_TYPES = [
   "Barangay Clearance",
@@ -17,6 +17,7 @@ const BADGE_MAP = {
   Ready:     { bg: "#FEF3C7", color: "#D97706", label: "READY"      },
   PickedUp:  { bg: "#E6F4EA", color: "#16A34A", label: "PICKED UP"  },
   Rejected:  { bg: "#FEE2E2", color: "#DC2626", label: "REJECTED"   },
+  Canceled:  { bg: "#FEF2F2", color: "#991B1B", label: "CANCELED"   },
 };
 
 export function statusBadge(status) {
@@ -61,8 +62,10 @@ export function initLayout(activeNav) {
       svg:`<path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>`, fill:false },
     { id:"archive",   label:"Digital Archive",    href:`${ROOT}pages/archive.html`,
       svg:`<path stroke-linecap="round" stroke-linejoin="round" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/>`, fill:false },
+    { id:"residents", label:"Residents", href:`${ROOT}pages/residents.html`,
+    svg:`<path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>`, fill:false },
     { id:"settings",  label:"Settings",           href:`${ROOT}pages/settings.html`,
-      svg:`<path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065zM15 12a3 3 0 11-6 0 3 3 0 016 0z"/>`, fill:false },
+    svg:`<path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065zM15 12a3 3 0 11-6 0 3 3 0 016 0z"/>`, fill:false },
   ];
 
   const navHtml = NAV.map(({id,label,href,svg,fill})=>{
@@ -103,17 +106,20 @@ export function initLayout(activeNav) {
   </aside>
   <div id="sb-overlay" class="fixed inset-0 bg-black/20 z-30 hidden lg:hidden"></div>`;
 
-  // Topbar HTML
+  // Topbar search is only shown on the dashboard page.
+  const searchBlock = activeNav === "dashboard" ? `
+      <div class="relative flex-1 max-w-xs">
+        <svg class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+        <input id="topbar-search" type="text" placeholder="Search requests, residents..." class="w-full pl-9 pr-4 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#1A56DB]/20 focus:border-[#1A56DB] transition"/>
+      </div>
+    ` : "";
+
   const topbarHtml = `
   <header id="topbar" class="fixed top-0 right-0 z-20 h-14 bg-white border-b border-gray-200 flex items-center px-6 gap-4 transition-all duration-300" style="left:232px">
-    <div class="relative flex-1 max-w-xs">
-      <svg class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-      <input type="text" placeholder="Search requests, residents..." class="w-full pl-9 pr-4 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#1A56DB]/20 focus:border-[#1A56DB] transition"/>
-    </div>
+    ${searchBlock}
     <div class="flex items-center gap-1.5 ml-auto">
-      <button class="p-2 rounded-lg hover:bg-gray-100 text-gray-500 transition relative">
+      <button class="p-2 rounded-lg hover:bg-gray-100 text-gray-500 transition">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
-        <span id="notif-dot" class="hidden absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full ring-2 ring-white"></span>
       </button>
       <button class="p-2 rounded-lg hover:bg-gray-100 text-gray-500 transition">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
@@ -168,4 +174,12 @@ export function wireLogout(AuthService) {
     await AuthService.logout();
     window.location.href = "../index.html";
   });
+}
+
+export function renderLayout(activeNav, pageTitle) {
+  initLayout(activeNav);
+}
+
+export function showAdminInfo(user) {
+  // No specific admin info area exists in this layout, but the import is kept for compatibility.
 }

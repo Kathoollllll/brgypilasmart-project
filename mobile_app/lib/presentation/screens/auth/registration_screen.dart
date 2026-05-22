@@ -50,7 +50,10 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
       if (!mounted) return;
       Navigator.pushReplacementNamed(context, AppRoutes.home);
     } catch (e) {
-      AppUtils.showSnack(context, 'Registration failed: $e', error: true);
+      final msg = e.toString().contains('too large')
+          ? 'ID photo is too large. Please retake it directly with your camera.'
+          : 'Registration failed. Please try again.';
+      AppUtils.showSnack(context, msg, error: true);
     } finally {
       if (mounted) setState(() => _loading = false);
     }

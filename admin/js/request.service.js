@@ -24,13 +24,13 @@ export const RequestService = {
     });
   },
 
-  // Only Ready requests for archive (live)
+  // Only Ready and document-closed requests for archive (live)
   listenReady(callback) {
     // Filter in JS to avoid needing a Firestore composite index
     const q = query(collection(db, COL), orderBy("createdAt", "desc"));
     return onSnapshot(q, (snap) => {
       const docs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-      callback(docs.filter((d) => d.status === "Ready" || d.status === "PickedUp"));
+      callback(docs.filter((d) => ["Ready", "PickedUp", "Canceled"].includes(d.status)));
     });
   },
 
@@ -56,6 +56,7 @@ export const RequestService = {
       Ready:    "Document is ready for pickup at the barangay hall.",
       PickedUp: "Resident has collected the document. Request closed.",
       Rejected: "Request has been rejected by staff.",
+      Canceled: "You canceled the request.",
     }[newStatus] || "Status updated by admin.";
 
     await updateDoc(doc(db, COL, id), {

@@ -4,7 +4,12 @@ import '../../../core/constants/app_constants.dart';
 
 // ─── Primary Button ───────────────────────────────────────────────────────────
 class AppButton extends StatelessWidget {
-  const AppButton({super.key, required this.label, required this.onPressed, this.loading = false, this.outlined = false});
+  const AppButton(
+      {super.key,
+      required this.label,
+      required this.onPressed,
+      this.loading = false,
+      this.outlined = false});
   final String label;
   final VoidCallback? onPressed;
   final bool loading;
@@ -16,7 +21,8 @@ class AppButton extends StatelessWidget {
           onPressed: loading ? null : onPressed,
           style: OutlinedButton.styleFrom(
             minimumSize: const Size(double.infinity, 52),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             side: BorderSide(color: AppColors.primary),
           ),
           child: _child(AppColors.primary),
@@ -27,14 +33,28 @@ class AppButton extends StatelessWidget {
         );
 
   Widget _child(Color c) => loading
-      ? SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: c, strokeWidth: 2))
+      ? SizedBox(
+          height: 20,
+          width: 20,
+          child: CircularProgressIndicator(color: c, strokeWidth: 2))
       : Text(label);
 }
 
 // ─── Text Field ───────────────────────────────────────────────────────────────
 class AppTextField extends StatelessWidget {
-  const AppTextField({super.key, required this.label, this.controller, this.validator,
-    this.obscure = false, this.keyboardType, this.suffix, this.maxLines = 1, this.hint, this.readOnly = false, this.onTap});
+  const AppTextField(
+      {super.key,
+      required this.label,
+      this.controller,
+      this.validator,
+      this.obscure = false,
+      this.keyboardType,
+      this.suffix,
+      this.maxLines = 1,
+      this.hint,
+      this.readOnly = false,
+      this.onTap,
+      this.showLabel = true});
   final String label;
   final TextEditingController? controller;
   final String? Function(String?)? validator;
@@ -45,27 +65,29 @@ class AppTextField extends StatelessWidget {
   final String? hint;
   final bool readOnly;
   final VoidCallback? onTap;
+  final bool showLabel;
 
   @override
   Widget build(BuildContext context) => TextFormField(
-    controller: controller,
-    validator: validator,
-    obscureText: obscure,
-    keyboardType: keyboardType,
-    maxLines: maxLines,
-    readOnly: readOnly,
-    onTap: onTap,
-    decoration: InputDecoration(
-      labelText: label,
-      hintText: hint,
-      suffixIcon: suffix,
-    ),
-  );
+        controller: controller,
+        validator: validator,
+        obscureText: obscure,
+        keyboardType: keyboardType,
+        maxLines: maxLines,
+        readOnly: readOnly,
+        onTap: onTap,
+        decoration: InputDecoration(
+          labelText: showLabel ? label : null,
+          hintText: hint,
+          suffixIcon: suffix,
+        ),
+      );
 }
 
 // ─── Card ─────────────────────────────────────────────────────────────────────
 class AppCard extends StatelessWidget {
-  const AppCard({super.key, required this.child, this.padding, this.onTap, this.color});
+  const AppCard(
+      {super.key, required this.child, this.padding, this.onTap, this.color});
   final Widget child;
   final EdgeInsets? padding;
   final VoidCallback? onTap;
@@ -73,16 +95,16 @@ class AppCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Card(
-    color: color,
-    child: InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Padding(
-        padding: padding ?? const EdgeInsets.all(16),
-        child: child,
-      ),
-    ),
-  );
+        color: color,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: padding ?? const EdgeInsets.all(16),
+            child: child,
+          ),
+        ),
+      );
 }
 
 // ─── Status Badge ─────────────────────────────────────────────────────────────
@@ -91,31 +113,34 @@ class StatusBadge extends StatelessWidget {
   final String status;
 
   static Color _bg(String s) => switch (s) {
-    AppConstants.statusRequested => const Color(0xFFFEF3C7),
-    AppConstants.statusVerified  => const Color(0xFFDCFCE7),
-    AppConstants.statusPrinted   => const Color(0xFFDBEAFE),
-    AppConstants.statusReady     => const Color(0xFFD1FAE5),
-    _ => const Color(0xFFF3F4F6),
-  };
+        AppConstants.statusRequested => const Color(0xFFFEF3C7),
+        AppConstants.statusVerified => const Color(0xFFDCFCE7),
+        AppConstants.statusPrinted => const Color(0xFFDBEAFE),
+        AppConstants.statusReady => const Color(0xFFD1FAE5),
+        AppConstants.statusCanceled => const Color(0xFFFEF2F2),
+        _ => const Color(0xFFF3F4F6),
+      };
 
   static Color _fg(String s) => switch (s) {
-    AppConstants.statusRequested => const Color(0xFFD97706),
-    AppConstants.statusVerified  => const Color(0xFF16A34A),
-    AppConstants.statusPrinted   => const Color(0xFF1D4ED8),
-    AppConstants.statusReady     => const Color(0xFF065F46),
-    _ => AppColors.textSub,
-  };
+        AppConstants.statusRequested => const Color(0xFFD97706),
+        AppConstants.statusVerified => const Color(0xFF16A34A),
+        AppConstants.statusPrinted => const Color(0xFF1D4ED8),
+        AppConstants.statusReady => const Color(0xFF065F46),
+        AppConstants.statusCanceled => const Color(0xFF991B1B),
+        _ => AppColors.textSub,
+      };
 
   @override
   Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-    decoration: BoxDecoration(
-      color: _bg(status),
-      borderRadius: BorderRadius.circular(20),
-    ),
-    child: Text(status,
-      style: TextStyle(color: _fg(status), fontSize: 11, fontWeight: FontWeight.w600)),
-  );
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(
+          color: _bg(status),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Text(status,
+            style: TextStyle(
+                color: _fg(status), fontSize: 11, fontWeight: FontWeight.w600)),
+      );
 }
 
 // ─── Section Header ───────────────────────────────────────────────────────────
@@ -126,12 +151,16 @@ class SectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Row(
-    children: [
-      Text(title, style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15, color: AppColors.textPrimary)),
-      const Spacer(),
-      if (action != null) action!,
-    ],
-  );
+        children: [
+          Text(title,
+              style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 15,
+                  color: AppColors.textPrimary)),
+          const Spacer(),
+          if (action != null) action!,
+        ],
+      );
 }
 
 // ─── Loading Overlay ─────────────────────────────────────────────────────────
@@ -142,39 +171,65 @@ class LoadingOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Stack(
-    children: [
-      child,
-      if (loading)
-        const Positioned.fill(
-          child: ColoredBox(
-            color: Color(0x80FFFFFF),
-            child: Center(child: CircularProgressIndicator()),
-          ),
-        ),
-    ],
-  );
+        children: [
+          child,
+          if (loading)
+            const Positioned.fill(
+              child: ColoredBox(
+                color: Color(0x80FFFFFF),
+                child: Center(child: CircularProgressIndicator()),
+              ),
+            ),
+        ],
+      );
 }
 
 // ─── Empty State ──────────────────────────────────────────────────────────────
 class EmptyState extends StatelessWidget {
-  const EmptyState({super.key, required this.icon, required this.title, this.subtitle});
+  const EmptyState(
+      {super.key, required this.icon, required this.title, this.subtitle});
   final IconData icon;
   final String title;
   final String? subtitle;
 
   @override
   Widget build(BuildContext context) => Center(
-    child: Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Icon(icon, size: 64, color: AppColors.border),
-        const SizedBox(height: 16),
-        Text(title, style: TextStyle(fontWeight: FontWeight.w600, color: AppColors.textSub)),
-        if (subtitle != null) ...[
-          const SizedBox(height: 4),
-          Text(subtitle!, style: TextStyle(fontSize: 13, color: AppColors.textSub), textAlign: TextAlign.center),
-        ],
-      ],
-    ),
-  );
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 64, color: AppColors.border),
+            const SizedBox(height: 16),
+            Text(title,
+                style: TextStyle(
+                    fontWeight: FontWeight.w600, color: AppColors.textSub)),
+            if (subtitle != null) ...[
+              const SizedBox(height: 4),
+              Text(subtitle!,
+                  style: TextStyle(fontSize: 13, color: AppColors.textSub),
+                  textAlign: TextAlign.center),
+            ],
+          ],
+        ),
+      );
+}
+
+// ─── App Logo (used in login and app bar) ───────────────────────────────────
+class AppLogo extends StatelessWidget {
+  const AppLogo({super.key, this.size = 22, this.onTap});
+  final double size;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) => GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            color: AppColors.chipBlue,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child:
+              Icon(Icons.account_balance, color: AppColors.primary, size: size),
+        ),
+      );
 }

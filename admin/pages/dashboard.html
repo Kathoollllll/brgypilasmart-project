@@ -103,6 +103,18 @@
 
     initLayout("dashboard");
 
+    const topbarSearch = document.getElementById("topbar-search");
+    if (topbarSearch) {
+      topbarSearch.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          const query = topbarSearch.value.trim();
+          if (query) {
+            window.location.href = "./requests.html?search=" + encodeURIComponent(query);
+          }
+        }
+      });
+    }
+
     AuthService.requireAuth((user) => {
       wireLogout(AuthService);
 

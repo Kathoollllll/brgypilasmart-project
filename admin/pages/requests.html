@@ -48,6 +48,7 @@
               <option value="Printed">Printed</option>
               <option value="Ready">Ready</option>
               <option value="Rejected">Rejected</option>
+              <option value="Canceled">Canceled</option>
             </select>
             <svg class="w-4 h-4 absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
                  fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -120,10 +121,17 @@
 
     initLayout("requests");
 
-    const PAGE_SIZE = 7;
+    const PAGE_SIZE = 10;
     let allRequests = [];
     let filtered    = [];
     let currentPage = 1;
+
+    const urlParams     = new URLSearchParams(window.location.search);
+    const initialSearch = urlParams.get("search") || "";
+    const initialStatus = urlParams.get("status") || "";
+
+    document.getElementById("search-input").value = initialSearch;
+    document.getElementById("status-filter").value = initialStatus;
 
     // ── Render one page of rows ───────────────────────────────────────────────
     function renderTable() {

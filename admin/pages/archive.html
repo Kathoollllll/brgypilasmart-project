@@ -202,6 +202,7 @@
                       style="background:${chip.bg};color:${chip.color}">
                   ${chip.label}
                 </span>
+                ${r.status ? `<span class="text-[10px] font-bold px-2 py-0.5 rounded-full border border-gray-200 text-gray-600">${r.status.toUpperCase()}</span>` : ""}
                 <span class="text-[10px] text-gray-400 font-mono">${arcRef}</span>
               </div>
               <!-- Eye icon -->
@@ -243,8 +244,8 @@
               <!-- Download Original → opens ID image or shows message -->
               <button onclick="event.stopPropagation();${
                 r.idImageUrl
-                  ? `window.open('${r.idImageUrl}','_blank')`
-                  : `alert('Document file not yet available for download.')`
+                  ? `(()=>{const a=document.createElement('a');a.href='data:image/jpeg;base64,${r.idImageUrl}';a.download='${r.userName}_ID.jpg';a.click();})()`
+                  : `alert('No ID image available for this request.')`
               }"
                 class="flex items-center gap-1.5 text-[#1A56DB] text-xs font-bold hover:underline transition">
                 Download<br/>Original

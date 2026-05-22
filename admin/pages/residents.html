@@ -3,143 +3,447 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>BrgyPilaSmart — Digital Archive</title>
+  <title>Residents — BrgyPilaSmart Admin</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="../css/styles.css"/>
-  <link rel="preconnect" href="https://www.gstatic.com" crossorigin/>
-  <link rel="dns-prefetch" href="https://www.gstatic.com"/>
-  <link rel="dns-prefetch" href="https://firestore.googleapis.com"/>
 </head>
-<body class="min-h-screen bg-slate-100 flex overflow-hidden">
+<body class="bg-[#F0F2F5] min-h-screen">
 
-  <div id="sidebar-slot"></div>
-
-  <div class="flex-1 flex flex-col min-w-0 h-screen overflow-y-auto">
-    <div id="topbar-slot"></div>
-
-    <main class="flex-1 p-6 page-content">
+  <div id="page-content" class="min-h-screen">
+    <div class="px-8 py-7">
 
       <!-- Header -->
-      <div class="flex items-center justify-between mb-2">
+      <div class="flex items-center justify-between mb-6">
         <div>
-          <h2 class="text-xl font-bold text-slate-800">Digital Archive</h2>
-          <p class="text-slate-500 text-xs mt-0.5">All completed document requests — status: Ready.</p>
+          <h1 class="text-[28px] font-extrabold text-gray-900 mb-1">Residents</h1>
+          <p class="text-sm text-gray-400">
+            All registered residents from the mobile app.
+          </p>
         </div>
-        <!-- Search -->
+        <span id="resident-count"
+          class="text-xs text-gray-400 bg-white border border-gray-200
+                 px-3 py-1.5 rounded-lg">
+          Loading…
+        </span>
+      </div>
+
+      <!-- Search + filter -->
+      <div class="flex flex-wrap gap-3 mb-5">
         <div class="relative">
-          <svg class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+          <svg class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2
+                      text-gray-400 pointer-events-none"
                fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+            <path stroke-linecap="round" stroke-linejoin="round"
+              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
           </svg>
-          <input id="archive-search" type="text" placeholder="Search archive…"
-            class="pl-9 pr-4 py-2 text-sm border border-slate-200 rounded-lg bg-white
-                   focus:outline-none focus:ring-2 focus:ring-[#1A56DB] w-48 transition"/>
+          <input id="res-search" type="text" placeholder="Search name or email…"
+            class="pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm bg-white
+                   text-gray-700 focus:outline-none focus:ring-2
+                   focus:ring-[#1A56DB]/20 focus:border-[#1A56DB] transition w-56"/>
+        </div>
+
+        <select id="verified-filter"
+          class="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white
+                 text-gray-700 focus:outline-none focus:ring-2
+                 focus:ring-[#1A56DB]/20 cursor-pointer">
+          <option value="">All Residents</option>
+          <option value="true">Verified Only</option>
+          <option value="false">Unverified Only</option>
+        </select>
+      </div>
+
+      <!-- Table -->
+      <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="bg-gray-50 border-b border-gray-200">
+                <th class="text-left px-5 py-3 text-[11px] text-gray-400
+                           font-semibold uppercase tracking-wide">Resident</th>
+                <th class="text-left px-5 py-3 text-[11px] text-gray-400
+                           font-semibold uppercase tracking-wide">Email</th>
+                <th class="text-left px-5 py-3 text-[11px] text-gray-400
+                           font-semibold uppercase tracking-wide">Contact</th>
+                <th class="text-left px-5 py-3 text-[11px] text-gray-400
+                           font-semibold uppercase tracking-wide">Address</th>
+                <th class="text-left px-5 py-3 text-[11px] text-gray-400
+                           font-semibold uppercase tracking-wide">Gender</th>
+                <th class="text-left px-5 py-3 text-[11px] text-gray-400
+                           font-semibold uppercase tracking-wide">Status</th>
+                <th class="px-5 py-3"></th>
+              </tr>
+            </thead>
+            <tbody id="residents-tbody">
+              <tr>
+                <td colspan="7"
+                  class="text-center py-12 text-gray-400 text-sm">
+                  Loading…
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="px-5 py-3 border-t border-gray-100">
+          <span id="table-count" class="text-xs text-gray-400">— residents</span>
         </div>
       </div>
+    </div>
+  </div>
 
-      <!-- Count badge -->
-      <p id="archive-count" class="text-xs text-slate-400 mb-5">Loading…</p>
-
-      <!-- Cards grid -->
-      <div id="archive-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
-        <div class="col-span-full text-center py-16 text-slate-400">Loading…</div>
+  <!-- View ID modal -->
+  <div id="id-modal"
+    class="modal-wrap fixed inset-0 bg-black/40 backdrop-blur-sm z-50
+          items-center justify-center p-4"
+    style="display:none">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="font-bold text-gray-800">Resident Valid ID</h3>
+        <button id="id-modal-close"
+          class="p-1.5 hover:bg-gray-100 rounded-lg transition text-gray-400">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
       </div>
+      <img id="id-modal-img" src="" alt="Valid ID"
+        style="width:100%;border-radius:12px;border:1px solid #e5e7eb;object-fit:cover;margin-bottom:16px;display:none"/>
 
-    </main>
+      <!-- Shown when resident has no ID uploaded yet -->
+      <div id="id-modal-no-id"
+        style="display:none;flex-direction:column;align-items:center;justify-content:center;
+              height:160px;border-radius:12px;border:2px dashed #e5e7eb;
+              color:#9ca3af;margin-bottom:16px">
+        <svg class="w-10 h-10 mb-2 text-gray-300" fill="none" stroke="currentColor"
+            stroke-width="1.5" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round"
+            d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 
+              012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2
+              2 0 00-2 2v12a2 2 0 002 2z"/>
+        </svg>
+        <p class="text-sm font-medium text-gray-400">No ID uploaded yet</p>
+        <p class="text-xs text-gray-300 mt-1">
+          Resident has not submitted a valid ID.
+        </p>
+      </div>
+      <button id="id-modal-verify"
+        class="w-full bg-[#1A56DB] hover:bg-[#1040A8] text-white font-semibold
+              py-2.5 rounded-xl text-sm transition">
+        Verify This Resident
+      </button>
+    </div>
+  </div>
+
+  <!-- Delete confirm modal -->
+  <div id="delete-modal"
+    class="modal-wrap fixed inset-0 bg-black/40 backdrop-blur-sm z-50
+           items-center justify-center p-4"
+    style="display:none">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
+      <div class="flex items-center gap-3 mb-3">
+        <div class="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+          <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor"
+               stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round"
+              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0
+                 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0
+                 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+          </svg>
+        </div>
+        <div>
+          <h3 class="font-bold text-gray-800">Delete Account</h3>
+          <p class="text-xs text-gray-400">This cannot be undone.</p>
+        </div>
+      </div>
+      <p class="text-sm text-gray-500 mb-5">
+        The resident's account will be removed from the active users list
+        and archived in the database for record-keeping.
+      </p>
+      <div class="flex gap-2">
+        <button id="delete-cancel"
+          class="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm
+                 text-gray-600 hover:bg-gray-50 font-medium transition">
+          Cancel
+        </button>
+        <button id="delete-confirm"
+          class="flex-1 py-2.5 rounded-xl bg-red-500 hover:bg-red-600
+                 text-white text-sm font-semibold transition">
+          Delete Account
+        </button>
+      </div>
+    </div>
   </div>
 
   <script type="module">
-    import { AuthService }    from "../js/auth.service.js";
-    import { RequestService } from "../js/request.service.js";
-    import { renderLayout, wireLogout, showAdminInfo, statusBadge, fmtDate } from "../js/ui.helpers.js";
+    import { AuthService } from "../js/auth.service.js";
+    import { UserService } from "../js/user.service.js";
+    import { initLayout, wireLogout, fmtDate, avatarBg, avatarInitials }
+      from "../js/ui.helpers.js";
 
-    renderLayout("archive", "Digital Archive");
+    initLayout("residents");
 
-    let allReady = [];
+    let allResidents = [];
+    let pendingDeleteUid = null;
+    const modal = document.getElementById("delete-modal");
 
-    function renderGrid(reqs) {
-      const grid = document.getElementById("archive-grid");
-      document.getElementById("archive-count").textContent =
-        `${reqs.length} completed request${reqs.length !== 1 ? "s" : ""}`;
+    // ── Render table ────────────────────────────────────────────────────────
+    function renderTable(residents) {
+      const tbody = document.getElementById("residents-tbody");
+      const count = `${residents.length} resident${residents.length !== 1 ? "s" : ""}`;
+      document.getElementById("resident-count").textContent = count;
+      document.getElementById("table-count").textContent    = count;
 
-      if (!reqs.length) {
-        grid.innerHTML = `
-          <div class="col-span-full flex flex-col items-center py-20 text-slate-400">
-            <svg class="w-16 h-16 mb-3 text-slate-200" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/>
-            </svg>
-            <p class="font-medium">No archived requests yet.</p>
-            <p class="text-sm mt-1">Completed requests will appear here.</p>
-          </div>`;
+      if (!residents.length) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="7"
+              class="text-center py-12 text-gray-400 text-sm">
+              No residents found.
+            </td>
+          </tr>`;
         return;
       }
 
-      grid.innerHTML = reqs.map((r) => `
-        <div class="bg-white rounded-xl border border-slate-200 overflow-hidden hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer group"
-             onclick="window.location.href='./request-detail.html?id=${r.id}'">
+      tbody.innerHTML = residents.map((u) => `
+        <tr class="border-b border-gray-50 last:border-0
+                   hover:bg-gray-50/60 transition">
 
-          <!-- ID image or placeholder -->
-          ${r.idImageUrl
-            ? `<div class="relative h-32 overflow-hidden">
-                <img src="${r.idImageUrl}" alt="ID" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"/>
-                <div class="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
-               </div>`
-            : `<div class="h-32 bg-gradient-to-br from-blue-50 to-slate-100 flex items-center justify-center">
-                <svg class="w-10 h-10 text-slate-200" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 9h3.75M15 12h3.75M15 15h3.75M4.5 19.5h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5zm6-10.125a1.875 1.875 0 11-3.75 0 1.875 1.875 0 013.75 0zm1.294 6.336a6.721 6.721 0 01-3.17.789 6.721 6.721 0 01-3.168-.789 3.376 3.376 0 016.338 0z"/>
-                </svg>
-               </div>`}
-
-          <div class="p-4">
-            <!-- Status + doc type -->
-            <div class="flex items-start justify-between mb-2">
-              <div>
-                <p class="font-semibold text-slate-800 text-sm leading-tight">${r.documentType}</p>
-                <p class="text-xs text-slate-500 mt-0.5">${r.userName}</p>
+          <!-- Name + avatar -->
+          <td class="px-5 py-3.5">
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 rounded-full flex items-center justify-center
+                          text-xs font-bold text-gray-600 shrink-0"
+                   style="background:${avatarBg(u.fullName)}">
+                ${avatarInitials(u.fullName)}
               </div>
-              ${statusBadge(r.status)}
+              <div>
+                <p class="font-semibold text-gray-800 text-sm">
+                  ${u.fullName}
+                </p>
+                <p class="text-[10px] text-gray-400">
+                  UID: ${u.id.slice(0, 8)}…
+                </p>
+              </div>
             </div>
+          </td>
 
-            <!-- Ref + date -->
-            <div class="flex items-center justify-between pt-3 border-t border-slate-100 mt-3">
-              <span class="font-mono text-xs text-slate-400">${r.referenceNo}</span>
-              <span class="text-xs text-slate-400">${fmtDate(r.createdAt)}</span>
-            </div>
+          <td class="px-5 py-3.5 text-gray-500 text-xs">${u.email ?? "—"}</td>
+          <td class="px-5 py-3.5 text-gray-500 text-xs whitespace-nowrap">
+            ${u.contactNumber ?? "—"}
+          </td>
+          <td class="px-5 py-3.5 text-gray-500 text-xs max-w-[140px] truncate">
+            ${u.address ?? "—"}
+          </td>
+          <td class="px-5 py-3.5 text-gray-500 text-xs">${u.gender ?? "—"}</td>
 
-            <!-- Actions -->
-            <div class="flex gap-2 mt-3">
-              <button onclick="event.stopPropagation(); window.location.href='./request-detail.html?id=${r.id}'"
-                class="flex-1 text-xs font-medium text-[#1A56DB] bg-blue-50 hover:bg-blue-100 py-1.5 rounded-lg transition">
-                View Details
+          <!-- Verified badge -->
+          <td class="px-5 py-3.5">
+            ${u.isVerified
+              ? `<span class="inline-flex items-center gap-1 text-xs font-semibold
+                             text-green-700 bg-green-100 px-2.5 py-0.5 rounded-full">
+                   <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                     <path fill-rule="evenodd"
+                       d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1
+                          0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0
+                          00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                       clip-rule="evenodd"/>
+                   </svg>
+                   Verified
+                 </span>`
+              : `<span class="text-xs font-semibold text-amber-600
+                             bg-amber-100 px-2.5 py-0.5 rounded-full">
+                   Pending
+                 </span>`}
+          </td>
+
+          <!-- Actions -->
+          <td class="px-5 py-3.5">
+            <div class="flex items-center gap-2">
+              <!-- View ID button — only show if they have an ID -->
+            <button data-uid="${u.id}" data-img="${u.idImageUrl ?? ''}"
+              class="view-id-btn text-xs font-semibold px-3 py-1.5 rounded-lg
+                    border border-gray-200 text-gray-600 hover:bg-gray-50
+                    transition whitespace-nowrap">
+              View ID
+            </button>
+
+              <!-- Verify / Revoke -->
+              <button data-uid="${u.id}" data-verified="${u.isVerified}"
+                class="verify-btn text-xs font-semibold px-3 py-1.5 rounded-lg
+                      border transition whitespace-nowrap
+                  ${u.isVerified
+                    ? "border-red-200 text-red-500 hover:bg-red-50"
+                    : "border-[#1A56DB] text-[#1A56DB] hover:bg-blue-50"}">
+                ${u.isVerified ? "Revoke" : "Verify"}
               </button>
-              ${r.idImageUrl ? `
-              <button onclick="event.stopPropagation(); window.open('${r.idImageUrl}','_blank')"
-                class="flex-1 text-xs font-medium text-slate-600 bg-slate-50 hover:bg-slate-100 py-1.5 rounded-lg transition">
-                View ID
-              </button>` : ""}
-            </div>
-          </div>
-        </div>
-      `).join("");
-    }
 
-    function applySearch() {
-      const q = document.getElementById("archive-search").value.toLowerCase();
-      renderGrid(q
-        ? allReady.filter((r) =>
-            r.userName?.toLowerCase().includes(q) ||
-            r.referenceNo?.toLowerCase().includes(q) ||
-            r.documentType?.toLowerCase().includes(q))
-        : allReady
+              <!-- Delete -->
+              <button data-uid="${u.id}"
+                class="delete-btn text-xs font-semibold px-3 py-1.5 rounded-lg
+                      border border-red-200 text-red-500 hover:bg-red-50
+                      transition whitespace-nowrap">
+                Delete
+              </button>
+            </div>
+          </td>
+        </tr>
+      `).join("");
+
+      // Wire View ID buttons
+      const idModal      = document.getElementById("id-modal");
+      const idModalImg   = document.getElementById("id-modal-img");
+      const idModalVerify= document.getElementById("id-modal-verify");
+      let   viewingUid   = null;
+
+      document.getElementById("id-modal-close").addEventListener("click", () => {
+        idModal.style.display = "none";
+        viewingUid = null;
+      });
+
+      tbody.querySelectorAll(".view-id-btn").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          viewingUid = btn.dataset.uid;
+          const img  = btn.dataset.img;
+
+          if (!img) {
+            // No ID uploaded yet — show placeholder
+            idModalImg.src   = "";
+            idModalImg.style.display = "none";
+            document.getElementById("id-modal-no-id").style.display = "flex";
+          } else {
+            idModalImg.style.display = "block";
+            document.getElementById("id-modal-no-id").style.display = "none";
+            idModalImg.src = img.startsWith("http") || img.startsWith("data:")
+              ? img
+              : `data:image/jpeg;base64,${img}`;
+          }
+
+          idModal.style.display = "flex";
+
+          // Update verify button label based on current status
+          const resident = allResidents.find((r) => r.id === viewingUid);
+          idModalVerify.textContent = resident?.isVerified
+            ? "Revoke Verification"
+            : "Verify This Resident";
+          idModalVerify.className = resident?.isVerified
+            ? "w-full bg-red-500 hover:bg-red-600 text-white font-semibold py-2.5 rounded-xl text-sm transition"
+            : "w-full bg-[#1A56DB] hover:bg-[#1040A8] text-white font-semibold py-2.5 rounded-xl text-sm transition";
+            // Disable verify button if no ID uploaded
+            idModalVerify.disabled = !img && !resident?.isVerified;
+            if (!img && !resident?.isVerified) {
+              idModalVerify.className = "w-full bg-gray-200 text-gray-400 font-semibold py-2.5 rounded-xl text-sm cursor-not-allowed";
+              idModalVerify.textContent = "No ID — Cannot Verify";
+}
+        });
+      });
+
+      idModalVerify.addEventListener("click", async () => {
+        if (!viewingUid) return;
+        const resident = allResidents.find((r) => r.id === viewingUid);
+        const newState = !resident?.isVerified;
+        idModalVerify.textContent = "Saving…";
+        idModalVerify.disabled    = true;
+        await UserService.setVerified(viewingUid, newState);
+        idModal.style.display = "none";
+        viewingUid = null;
+        idModalVerify.disabled = false;
+      });
+
+      // Wire verify buttons
+      tbody.querySelectorAll(".verify-btn").forEach((btn) =>
+        btn.addEventListener("click", async () => {
+          const resident = allResidents.find((r) => r.id === btn.dataset.uid);
+          if (!resident) return;
+
+          const hasValidId = !!resident.idImageUrl;
+          const isVerified = resident.isVerified;
+
+          if (!isVerified && !hasValidId) {
+            window.alert("This resident has no valid ID uploaded and cannot be verified.");
+            return;
+          }
+
+          btn.disabled = true;
+          btn.textContent = "Saving…";
+
+          try {
+            await UserService.setVerified(btn.dataset.uid, !isVerified);
+            resident.isVerified = !isVerified;
+            btn.dataset.verified = String(!isVerified);
+            applyFilter();
+          } catch (error) {
+            window.alert("Unable to update verification status. Please try again.");
+            console.error(error);
+          } finally {
+            btn.disabled = false;
+          }
+        })
+      );
+
+      // Wire delete buttons
+      tbody.querySelectorAll(".delete-btn").forEach((btn) =>
+        btn.addEventListener("click", () => {
+          pendingDeleteUid = btn.dataset.uid;
+          modal.style.display = "flex";
+        })
       );
     }
 
-    document.getElementById("archive-search").addEventListener("input", applySearch);
+    // ── Filter ──────────────────────────────────────────────────────────────
+    function applyFilter() {
+      const search   = document.getElementById("res-search").value.toLowerCase();
+      const verified = document.getElementById("verified-filter").value;
+      renderTable(allResidents.filter((u) =>
+        (!search   || u.fullName?.toLowerCase().includes(search)
+                   || u.email?.toLowerCase().includes(search)) &&
+        (verified === "" || String(u.isVerified) === verified)
+      ));
+    }
 
+    ["res-search", "verified-filter"].forEach((id) =>
+      document.getElementById(id).addEventListener("input", applyFilter)
+    );
+
+    // ── Delete modal ────────────────────────────────────────────────────────
+    document.getElementById("delete-cancel").addEventListener("click", () => {
+      modal.style.display = "none";
+      pendingDeleteUid = null;
+    });
+
+    document.getElementById("delete-confirm").addEventListener("click", async () => {
+      if (!pendingDeleteUid) return;
+      const btn = document.getElementById("delete-confirm");
+      btn.textContent = "Deleting…";
+      btn.disabled = true;
+      // Archive then delete from Firestore
+      await UserService.archiveAndDelete(pendingDeleteUid);
+      modal.style.display = "none";
+      pendingDeleteUid = null;
+      btn.textContent = "Delete Account";
+      btn.disabled = false;
+      // Table auto-updates via listener
+    });
+
+    // ── Boot ────────────────────────────────────────────────────────────────
     AuthService.requireAuth((user) => {
-      showAdminInfo(user);
       wireLogout(AuthService);
-      RequestService.listenReady((reqs) => { allReady = reqs; applySearch(); });
+      UserService.listenAll(async (residents) => {
+        // For residents with no idImageUrl on profile,
+        // search their requests to find one
+        const enriched = await Promise.all(residents.map(async (u) => {
+          if (u.idImageUrl) return u; // already has ID, skip
+          try {
+            const foundImg = await UserService.findResidentIdImage(u.id);
+            if (foundImg) {
+              // Save it back to user profile so future loads are instant
+              await UserService.saveIdImage(u.id, foundImg);
+              return { ...u, idImageUrl: foundImg };
+            }
+          } catch {}
+          return u;
+        }));
+        allResidents = enriched;
+        applyFilter();
+      });
     });
   </script>
 </body>

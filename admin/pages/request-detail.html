@@ -107,6 +107,11 @@
     const reqId  = params.get("id");
     if (!reqId) window.location.href = "./requests.html";
 
+    const root = document.getElementById("detail-root");
+    let currentUserId = null;
+    let resident = null;
+    let residentUnsub = null;
+
     // Modal helpers — always use style.display, never classList
     const confirmModal = document.getElementById("confirm-modal");
     const rejectModal  = document.getElementById("reject-modal");
@@ -156,21 +161,58 @@
       wireLogout(AuthService);
 
       RequestService.listenOne(reqId, async (r) => {
-        const root = document.getElementById("detail-root");
+        if (r.userId && currentUserId !== r.userId) {
+          currentUserId = r.userId;
+          if (residentUnsub) residentUnsub();
+          residentUnsub = UserService.listenOne(r.userId, (u) => {
+            if (resident && (resident.isVerified !== u.isVerified || resident.idImageUrl !== u.idImageUrl)) {
+              window.location.reload();
+            }
+            resident = u;
+          });
+        }
 
-        // Fetch resident profile
-        let resident = null;
+        // Fetch resident profile once for first render
         if (r.userId) {
           try { resident = await UserService.getOne(r.userId); } catch {}
+        } else {
+          resident = null;
         }
 
         const residentVerified = resident?.isVerified ?? false;
 
+        // Find the ID image — check this request first, then search all
+        // other requests by this resident for any that has an idImageUrl
+        let foundIdImage = r.idImageUrl ?? resident?.idImageUrl ?? null;
+
+        if (!foundIdImage && r.userId) {
+          try {
+            foundIdImage = await UserService.findResidentIdImage(r.userId);
+          } catch {}
+        }
+
+        const profileIdUrl           = foundIdImage;
+        const usingResidentProfileId = !r.idImageUrl && !!foundIdImage;
+        const registeredAutoVerify   = false; // disabled — admin controls verification manually
+
+        if (registeredAutoVerify) {
+          if (r.userId) {
+            try { await UserService.setVerified(r.userId, true); } catch {}
+          }
+          await RequestService.updateStatus(
+            reqId,
+            "Verified",
+            "Automatically verified using the resident's previously submitted registration ID."
+          );
+          return;
+        }
+
         // Current step index in pipeline
         const currentStepIdx = STEPS.findIndex(s => s.key === r.status);
-        const isRejected      = r.status === "Rejected";
-        const isFinal    = r.status === "PickedUp";
-        const isReady    = r.status === "Ready";
+        const isCanceled     = r.status === "Canceled";
+        const isRejected     = r.status === "Rejected";
+        const isFinal        = r.status === "PickedUp" || isCanceled;
+        const isReady        = r.status === "Ready";
 
         // Status header color
         const statusColors = {
@@ -178,7 +220,9 @@
           Verified:  { bg: "#DBEAFE", text: "#1D4ED8", dot: "#1A56DB" },
           Printed:   { bg: "#EDE9FE", text: "#5B21B6", dot: "#7C3AED" },
           Ready:     { bg: "#D1FAE5", text: "#065F46", dot: "#16A34A" },
+          PickedUp:  { bg: "#D1FAE5", text: "#065F46", dot: "#16A34A" },
           Rejected:  { bg: "#FEE2E2", text: "#991B1B", dot: "#DC2626" },
+          Canceled:  { bg: "#FEE2E2", text: "#991B1B", dot: "#991B1B" },
         }[r.status] ?? { bg: "#E5E7EB", text: "#374151", dot: "#6B7280" };
 
         root.innerHTML = `
@@ -239,7 +283,7 @@
                   </div>
                   ${residentVerified
                     ? `<span class="text-[10px] font-bold text-green-600 bg-green-100
-                                    px-2.5 py-1 rounded-full">✓ Previously Verified</span>`
+                                    px-2.5 py-1 rounded-full">✓ Verified</span>`
                     : ""}
                 </div>
                 <div class="grid grid-cols-2 gap-x-8 gap-y-5">
@@ -300,13 +344,23 @@
                   </svg>
                   <h2 class="font-bold text-gray-800 text-sm">Verification Documents</h2>
                 </div>
-                ${r.idImageUrl
-                  ? `<div class="rounded-xl overflow-hidden border border-gray-200 cursor-pointer"
-                          onclick="window.open('${r.idImageUrl}','_blank')">
-                      <img src="${r.idImageUrl}" alt="Submitted ID"
-                        class="w-full max-h-64 object-cover hover:opacity-90 transition"/>
-                    </div>
-                    <p class="text-xs text-gray-400 mt-2 text-center">Click to view full size</p>`
+                ${profileIdUrl
+                  ? (() => {
+                      const idImageSrc = profileIdUrl.startsWith("http") || profileIdUrl.startsWith("data:")
+                        ? profileIdUrl
+                        : `data:image/jpeg;base64,${profileIdUrl}`;
+                      const verifiedNote = usingResidentProfileId 
+                        ? `<p class="text-xs text-green-600 mt-2 text-center">Using the resident's previously verified ID image.</p>`
+                        : '';
+                      return `
+                        <div class="rounded-xl overflow-hidden border border-gray-200 cursor-pointer"
+                             onclick="window.open('${idImageSrc}', '_blank')">
+                          <img src="${idImageSrc}" alt="Submitted ID"
+                            class="w-full max-h-64 object-cover hover:opacity-90 transition"/>
+                        </div>
+                        <p class="text-xs text-gray-400 mt-2 text-center">Click to view full size</p>
+                        ${verifiedNote}`;
+                    })()
                   : `<div class="flex flex-col items-center justify-center h-36 rounded-xl
                                 border-2 border-dashed border-gray-200 text-gray-400">
                       <svg class="w-8 h-8 mb-2" fill="none" stroke="currentColor"
@@ -316,12 +370,7 @@
                               012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2
                               2 0 00-2 2v12a2 2 0 002 2z"/>
                       </svg>
-                      <p class="text-sm">No ID submitted</p>
-                      ${residentVerified
-                        ? `<p class="text-xs text-green-600 font-medium mt-1">
-                              Resident is already verified from a previous request.
-                            </p>`
-                        : ""}
+                      <p class="text-sm">No ID on file for this request.</p>
                     </div>`}
               </div>
             </div>
@@ -358,12 +407,20 @@
                 </p>
               </div>` : ""}
 
+              ${isCanceled ? `
+              <div class="p-4 bg-red-50 border border-red-200 rounded-xl mb-4 text-center">
+                <p class="text-sm font-bold text-red-600">Request Canceled</p>
+                <p class="text-xs text-red-400 mt-1">
+                  The resident canceled this request. The processing pipeline is locked and only archive actions are available.
+                </p>
+              </div>` : ""}
+
               <div class="space-y-2 mb-5" id="pipeline-steps">
                 ${STEPS.map((step, i) => {
-                  const isDone    = !isRejected && i < currentStepIdx;
-                  const isCurrent = !isRejected && i === currentStepIdx;
-                  const isNext    = !isRejected && i === currentStepIdx + 1 && !isFinal;
-                  const isLocked  = isRejected || i > currentStepIdx + 1 || (isFinal && i >= currentStepIdx);
+                  const isDone    = !isRejected && !isCanceled && i < currentStepIdx;
+                  const isCurrent = !isRejected && !isCanceled && i === currentStepIdx;
+                  const isNext    = !isRejected && !isCanceled && i === currentStepIdx + 1 && !isFinal;
+                  const isLocked  = isRejected || isCanceled || i > currentStepIdx + 1 || (isFinal && i >= currentStepIdx);
 
                   // Auto-verified: resident already verified and this is Verified step but not current
                   const autoVerified = step.key === "Verified" && residentVerified && !isCurrent && i <= currentStepIdx;
@@ -499,27 +556,49 @@
                 This will move it to the Digital Archive.
               </p>` : ""}
 
-              ${isFinal ? `
-                <div class="p-4 bg-green-50 border border-green-200 rounded-xl text-center mb-3">
-                  <div class="flex items-center justify-center gap-2 mb-1">
-                    <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
-                    </svg>
-                    <p class="text-sm font-bold text-green-700">Document Collected</p>
+              ${isFinal ? (
+                isCanceled ? `
+                  <div class="p-4 bg-red-50 border border-red-200 rounded-xl text-center mb-3">
+                    <div class="flex items-center justify-center gap-2 mb-1">
+                      <svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                      </svg>
+                      <p class="text-sm font-bold text-red-700">Request Canceled</p>
+                    </div>
+                    <p class="text-xs text-red-500">
+                      This request was canceled by the resident and can no longer be advanced.
+                    </p>
                   </div>
-                  <p class="text-xs text-green-500">
-                    Resident has picked up the document.
-                  </p>
-                </div>
-                <a href="./archive.html"
-                  class="w-full bg-[#1A56DB] hover:bg-[#1040A8] text-white font-semibold
-                        py-3 rounded-xl text-sm transition flex items-center justify-center gap-2">
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round"
-                      d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/>
-                  </svg>
-                  View in Digital Archive
-                </a>` : ""}
+                  <a href="./archive.html"
+                    class="w-full bg-[#1A56DB] hover:bg-[#1040A8] text-white font-semibold
+                          py-3 rounded-xl text-sm transition flex items-center justify-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/>
+                    </svg>
+                    View in Digital Archive
+                  </a>` : `
+                  <div class="p-4 bg-green-50 border border-green-200 rounded-xl text-center mb-3">
+                    <div class="flex items-center justify-center gap-2 mb-1">
+                      <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                      </svg>
+                      <p class="text-sm font-bold text-green-700">Document Collected</p>
+                    </div>
+                    <p class="text-xs text-green-500">
+                      Resident has picked up the document.
+                    </p>
+                  </div>
+                  <a href="./archive.html"
+                    class="w-full bg-[#1A56DB] hover:bg-[#1040A8] text-white font-semibold
+                          py-3 rounded-xl text-sm transition flex items-center justify-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/>
+                    </svg>
+                    View in Digital Archive
+                  </a>`
+              ) : ""}
             </div>
           </div>
         `;
@@ -535,7 +614,13 @@
 
             // When moving to Verified, also mark resident as verified
             if (targetStatus === "Verified" && userId) {
-              try { await UserService.setVerified(userId, true); } catch {}
+              try {
+                await UserService.setVerified(userId, true);
+                // Copy ID image from this request to the user's profile
+                if (r.idImageUrl) {
+                  await UserService.saveIdImage(userId, r.idImageUrl);
+                }
+              } catch {}
             }
 
             await RequestService.updateStatus(reqId, targetStatus, note);
@@ -566,7 +651,13 @@
 
           // Mark resident as verified in users collection
           if (r.userId) {
-            try { await UserService.setVerified(r.userId, true); } catch {}
+            try {
+              await UserService.setVerified(r.userId, true);
+              // Copy ID image from this request to the user's profile
+              if (r.idImageUrl) {
+                await UserService.saveIdImage(r.userId, r.idImageUrl);
+              }
+            } catch {}
           }
 
           //await RequestService.updateStatus(reqId, "Verified", note);

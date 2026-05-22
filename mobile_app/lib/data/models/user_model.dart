@@ -24,33 +24,47 @@ class UserModel {
   });
 
   factory UserModel.fromMap(Map<String, dynamic> m, String uid) => UserModel(
-    uid: uid,
-    fullName: m['fullName'] ?? '',
-    email: m['email'] ?? '',
-    contactNumber: m['contactNumber'] ?? '',
-    address: m['address'] ?? '',
-    gender: m['gender'] ?? '',
-    birthdate: (m['birthdate'] as Timestamp?)?.toDate(),
-    idImageUrl: m['idImageUrl'],
-    isVerified: m['isVerified'] ?? false,
-  );
+        uid: uid,
+        fullName: m['fullName'] ?? '',
+        email: m['email'] ?? '',
+        contactNumber: m['contactNumber'] ?? '',
+        address: m['address'] ?? '',
+        gender: m['gender'] ?? '',
+        birthdate: (m['birthdate'] as Timestamp?)?.toDate(),
+        idImageUrl: m['idImageUrl'],
+        isVerified: m['isVerified'] ?? false,
+      );
 
   Map<String, dynamic> toMap() => {
-    'fullName': fullName,
-    'email': email,
-    'contactNumber': contactNumber,
-    'address': address,
-    'gender': gender,
-    'birthdate': birthdate != null ? Timestamp.fromDate(birthdate!) : null,
-    'idImageUrl': idImageUrl,
-    'isVerified': isVerified,
-  };
+        'fullName': fullName,
+        'email': email,
+        'contactNumber': contactNumber,
+        'address': address,
+        'gender': gender,
+        'birthdate': birthdate != null ? Timestamp.fromDate(birthdate!) : null,
+        'idImageUrl': idImageUrl,
+        'isVerified': isVerified,
+      };
 
-  UserModel copyWith({String? idImageUrl, bool? isVerified}) => UserModel(
-    uid: uid, fullName: fullName, email: email,
-    contactNumber: contactNumber, address: address,
-    gender: gender, birthdate: birthdate,
-    idImageUrl: idImageUrl ?? this.idImageUrl,
-    isVerified: isVerified ?? this.isVerified,
-  );
+  UserModel copyWith({
+    String? fullName,
+    String? email,
+    String? contactNumber,
+    String? address,
+    String? gender,
+    DateTime? birthdate,
+    String? idImageUrl,
+    bool? isVerified,
+  }) =>
+      UserModel(
+        uid: uid,
+        fullName: fullName ?? this.fullName,
+        email: email ?? this.email,
+        contactNumber: contactNumber ?? this.contactNumber,
+        address: address ?? this.address,
+        gender: gender ?? this.gender,
+        birthdate: birthdate ?? this.birthdate,
+        idImageUrl: idImageUrl ?? this.idImageUrl,
+        isVerified: isVerified ?? this.isVerified,
+      );
 }

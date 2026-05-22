@@ -26,4 +26,6 @@ export const AuthService = {
       if (user) window.location.href = "./pages/dashboard.html";
     });
   },
+
+  
 };

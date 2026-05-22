@@ -47,19 +47,25 @@ class ConfirmationScreen extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         const Text('Reference No.', style: TextStyle(fontSize: 12, color: AppColors.textSub)),
-                        Row(
-                          children: [
-                            Text(request.referenceNo,
-                              style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.primary, fontSize: 14)),
-                            const SizedBox(width: 6),
-                            GestureDetector(
-                              onTap: () {
-                                Clipboard.setData(ClipboardData(text: request.referenceNo));
-                                AppUtils.showSnack(context, 'Reference number copied!');
-                              },
-                              child: const Icon(Icons.copy, size: 16, color: AppColors.textSub),
-                            ),
-                          ],
+                        Expanded(
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              Flexible(
+                                child: Text(request.referenceNo,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.primary, fontSize: 14)),
+                              ),
+                              const SizedBox(width: 6),
+                              GestureDetector(
+                                onTap: () {
+                                  Clipboard.setData(ClipboardData(text: request.referenceNo));
+                                  AppUtils.showSnack(context, 'Reference number copied!');
+                                },
+                                child: const Icon(Icons.copy, size: 16, color: AppColors.textSub),
+                              ),
+                            ],
+                          ),
                         ),
                       ],
                     ),
@@ -97,7 +103,12 @@ class _DetailRow extends StatelessWidget {
     mainAxisAlignment: MainAxisAlignment.spaceBetween,
     children: [
       Text(label, style: const TextStyle(fontSize: 12, color: AppColors.textSub)),
-      Text(value, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+      Expanded(
+        child: Text(value, 
+          textAlign: TextAlign.end,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+      ),
     ],
   );
 }
